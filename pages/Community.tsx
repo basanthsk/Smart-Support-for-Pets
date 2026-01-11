@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { 
   Heart, 
   MessageCircle, 
@@ -12,7 +12,11 @@ import {
   MapPin,
   CheckCircle2,
   Camera,
-  Loader2
+  Loader2,
+  Search,
+  Filter,
+  Calendar as CalendarIcon,
+  X
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { db } from '../services/firebase';
@@ -31,6 +35,7 @@ interface Post {
   user: string;
   avatar: string;
   petName: string;
+  petType?: string;
   content: string;
   image: string;
   likes: number;
@@ -48,12 +53,15 @@ const Community: React.FC = () => {
   const [isPosting, setIsPosting] = useState(false);
   const [loading, setLoading] = useState(true);
 
+  // Search & Filter State
+  const [searchQuery, setSearchQuery] = useState('');
+  const [typeFilter, setTypeFilter] = useState('All');
+  const [dateFilter, setDateFilter] = useState('Newest');
+
   useEffect(() => {
-    // Load pet data
     const savedPet = localStorage.getItem(`pet_${user?.uid}`);
     if (savedPet) setPet(JSON.parse(savedPet));
 
-    // Real-time listener for Firestore posts
     const q = query(collection(db, "posts"), orderBy("createdAt", "desc"));
     
     const unsubscribe = onSnapshot(q, (snapshot) => {
@@ -72,6 +80,39 @@ const Community: React.FC = () => {
     return () => unsubscribe();
   }, [user]);
 
+  const filteredPosts = useMemo(() => {
+    let result = [...posts];
+
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase();
+      result = result.filter(p => 
+        p.content.toLowerCase().includes(q) || 
+        p.petName.toLowerCase().includes(q) || 
+        p.user.toLowerCase().includes(q)
+      );
+    }
+
+    if (typeFilter !== 'All') {
+      result = result.filter(p => p.petType === typeFilter);
+    }
+
+    if (dateFilter === 'Oldest') {
+      result.sort((a, b) => {
+        const da = a.createdAt?.toDate?.() || new Date(0);
+        const db = b.createdAt?.toDate?.() || new Date(0);
+        return da - db;
+      });
+    } else {
+      result.sort((a, b) => {
+        const da = a.createdAt?.toDate?.() || new Date(0);
+        const db = b.createdAt?.toDate?.() || new Date(0);
+        return db - da;
+      });
+    }
+
+    return result;
+  }, [posts, searchQuery, typeFilter, dateFilter]);
+
   const handleCreatePost = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newPostContent.trim() || !user) return;
@@ -79,14 +120,14 @@ const Community: React.FC = () => {
     setIsPosting(true);
 
     try {
-      // Create global post in Firestore
       await addDoc(collection(db, "posts"), {
         user: user.displayName || 'Pet Parent',
         avatar: user.photoURL || `https://i.pravatar.cc/150?u=${user.uid}`,
         petName: pet?.name || 'My Pet',
+        petType: pet?.species || 'Unknown',
         content: newPostContent,
-        image: `https://images.unsplash.com/photo-1543466835-00a7907e9de1?auto=format&fit=crop&q=80&w=800&sig=${Date.now()}`, // Shared placeholder
-        likes: Math.floor(Math.random() * 10), // Mock initial likes
+        image: `https://images.unsplash.com/photo-1543466835-00a7907e9de1?auto=format&fit=crop&q=80&w=800&sig=${Date.now()}`,
+        likes: 0,
         comments: 0,
         createdAt: serverTimestamp(),
         userId: user.uid
@@ -95,7 +136,7 @@ const Community: React.FC = () => {
       setNewPostContent('');
     } catch (error) {
       console.error("Error creating post:", error);
-      alert("Failed to share post. Please check your internet connection.");
+      alert("Failed to share post.");
     } finally {
       setIsPosting(false);
     }
@@ -121,14 +162,50 @@ const Community: React.FC = () => {
           <h2 className="text-4xl font-black text-slate-900 tracking-tighter">Community Feed</h2>
           <p className="text-slate-500 font-medium">Shared by pet parents globally.</p>
         </div>
-        <div className="hidden md:flex -space-x-3">
-          {[1, 2, 3, 4].map(i => (
-            <div key={i} className="w-10 h-10 rounded-full border-2 border-white overflow-hidden shadow-sm">
-              <img src={`https://i.pravatar.cc/150?u=friend${i}`} alt="User" />
-            </div>
-          ))}
-          <div className="w-10 h-10 rounded-full bg-indigo-600 border-2 border-white flex items-center justify-center text-[10px] text-white font-bold shadow-sm">
-            +{posts.length > 0 ? posts.length : '...'}
+      </div>
+
+      {/* Search and Filters */}
+      <div className="bg-white rounded-[2.5rem] p-6 border border-slate-100 shadow-sm space-y-4">
+        <div className="relative">
+          <Search size={20} className="absolute left-5 top-4 text-slate-400" />
+          <input 
+            type="text" 
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+            placeholder="Search keywords, pet names..." 
+            className="w-full bg-slate-50 border border-slate-100 rounded-2xl py-3.5 pl-14 pr-12 text-sm font-medium outline-none focus:bg-white focus:ring-4 focus:ring-indigo-100 transition-all" 
+          />
+          {searchQuery && (
+            <button onClick={() => setSearchQuery('')} className="absolute right-5 top-4 text-slate-400 hover:text-indigo-600 transition-colors">
+              <X size={18} />
+            </button>
+          )}
+        </div>
+        <div className="flex flex-wrap gap-3">
+          <div className="flex items-center gap-2 bg-slate-50 border border-slate-100 rounded-xl px-4 py-2">
+            <Filter size={14} className="text-slate-400" />
+            <select 
+              value={typeFilter}
+              onChange={e => setTypeFilter(e.target.value)}
+              className="bg-transparent text-xs font-black text-slate-600 uppercase tracking-widest outline-none"
+            >
+              <option value="All">All Species</option>
+              <option value="Dog">Dogs</option>
+              <option value="Cat">Cats</option>
+              <option value="Bird">Birds</option>
+              <option value="Rabbit">Rabbits</option>
+            </select>
+          </div>
+          <div className="flex items-center gap-2 bg-slate-50 border border-slate-100 rounded-xl px-4 py-2">
+            <CalendarIcon size={14} className="text-slate-400" />
+            <select 
+              value={dateFilter}
+              onChange={e => setDateFilter(e.target.value)}
+              className="bg-transparent text-xs font-black text-slate-600 uppercase tracking-widest outline-none"
+            >
+              <option value="Newest">Newest First</option>
+              <option value="Oldest">Oldest First</option>
+            </select>
           </div>
         </div>
       </div>
@@ -154,10 +231,6 @@ const Community: React.FC = () => {
               Photo
             </button>
             <button className="p-3 text-slate-400 hover:bg-slate-50 rounded-2xl transition-all flex items-center gap-2 font-bold text-xs uppercase tracking-widest">
-              <MapPin size={18} />
-              Location
-            </button>
-            <button className="p-3 text-slate-400 hover:bg-slate-50 rounded-2xl transition-all flex items-center gap-2 font-bold text-xs uppercase tracking-widest">
               <Smile size={18} />
             </button>
           </div>
@@ -180,15 +253,15 @@ const Community: React.FC = () => {
             <Loader2 size={40} className="animate-spin text-indigo-600" />
             <p className="font-bold uppercase tracking-[0.2em] text-xs">Loading Shared Moments...</p>
           </div>
-        ) : posts.length === 0 ? (
+        ) : filteredPosts.length === 0 ? (
           <div className="bg-white rounded-[3rem] p-20 text-center border border-slate-100">
             <div className="w-20 h-20 bg-indigo-50 rounded-full flex items-center justify-center mx-auto mb-6 text-indigo-600">
               <Camera size={32} />
             </div>
-            <h3 className="text-2xl font-black text-slate-900 mb-2">No moments shared yet</h3>
-            <p className="text-slate-500 font-medium">Be the first to share a moment with the global community!</p>
+            <h3 className="text-2xl font-black text-slate-900 mb-2">No moments found</h3>
+            <p className="text-slate-500 font-medium">Try adjusting your filters or search keywords.</p>
           </div>
-        ) : posts.map((post) => (
+        ) : filteredPosts.map((post) => (
           <article key={post.id} className="bg-white rounded-[3.5rem] border border-slate-100 shadow-sm overflow-hidden group hover:shadow-2xl hover:shadow-indigo-50 transition-all duration-500">
             {/* Post Header */}
             <div className="p-8 flex items-center justify-between">
@@ -197,12 +270,13 @@ const Community: React.FC = () => {
                   <img src={post.avatar} alt={post.user} className="w-full h-full object-cover" />
                 </div>
                 <div>
-                  <h4 className="font-black text-slate-800 flex items-center gap-1.5">
-                    {post.user}
+                  <div className="flex items-center gap-1.5">
+                    <h4 className="font-black text-slate-800">{post.user}</h4>
                     <span className="w-1 h-1 bg-slate-300 rounded-full"></span>
-                    <span className="text-indigo-600">{post.petName}</span>
+                    <span className="text-indigo-600 font-bold">{post.petName}</span>
+                    <span className="px-2 py-0.5 bg-slate-50 text-[10px] font-black text-slate-400 rounded-md uppercase tracking-widest">{post.petType}</span>
                     {post.userId === user?.uid && <CheckCircle2 size={14} className="text-emerald-500" />}
-                  </h4>
+                  </div>
                   <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">{formatTime(post.createdAt)}</p>
                 </div>
               </div>

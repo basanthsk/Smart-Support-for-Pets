@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 /* Fix: Standardized named imports from react-router-dom using double quotes */
 import { HashRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import Layout from './components/Layout';
@@ -11,13 +11,13 @@ import Settings from './pages/Settings';
 import Community from './pages/Community';
 import Terms from './pages/Terms';
 import Privacy from './pages/Privacy';
-import { AppRoutes } from './types';
+import { AppRoutes, PetProfile, WeightRecord, VaccinationRecord } from './types';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { 
   Dog, Plus, PawPrint, Weight, Palette, Fingerprint, 
   AlertCircle, Camera, Check, ChevronRight, Cat, Bird, Rabbit, 
   Trash2, Edit3, ArrowLeft, Stethoscope, Search, Star, MessageCircle,
-  Heart, Fish, Bug, Thermometer, Droplets
+  Heart, Fish, Bug, Thermometer, Droplets, Calendar, LineChart, Syringe, TrendingUp
 } from 'lucide-react';
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -125,13 +125,20 @@ const HealthCheckupPage: React.FC = () => {
 
 const PetProfilePage: React.FC = () => {
   const { user } = useAuth();
-  const [pet, setPet] = useState<any>(null);
+  const [pet, setPet] = useState<PetProfile | null>(null);
   const [isAdding, setIsAdding] = useState(false);
   const [step, setStep] = useState(1);
   const [selectedCategory, setSelectedCategory] = useState<any>(null);
-  const [newPet, setNewPet] = useState({ name: '', breed: '', ageYears: '0', ageMonths: '0', species: 'Dog', healthNotes: '' });
+  const [newPet, setNewPet] = useState<PetProfile>({ 
+    name: '', breed: '', ageYears: '0', ageMonths: '0', species: 'Dog', healthNotes: '', 
+    weightHistory: [], vaccinations: [] 
+  });
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [ageError, setAgeError] = useState(false);
+  
+  // Weight & Vaccine Forms
+  const [newWeight, setNewWeight] = useState('');
+  const [newVaccine, setNewVaccine] = useState({ name: '', date: '', nextDueDate: '' });
 
   useEffect(() => {
     const saved = localStorage.getItem(`pet_${user?.uid}`);
@@ -142,7 +149,6 @@ const PetProfilePage: React.FC = () => {
     e.preventDefault();
     setAgeError(false);
 
-    // Validation: Impossible age check
     if (newPet.ageYears === '0' && newPet.ageMonths === '0') {
       setAgeError(true);
       return;
@@ -154,6 +160,40 @@ const PetProfilePage: React.FC = () => {
     setSaveSuccess(true);
     setTimeout(() => { setIsAdding(false); setSaveSuccess(false); setStep(1); }, 1500);
   };
+
+  const handleAddWeight = () => {
+    if (!newWeight || isNaN(Number(newWeight)) || !pet) return;
+    const updatedHistory: WeightRecord[] = [...(pet.weightHistory || []), { date: new Date().toISOString(), weight: Number(newWeight) }];
+    const updatedPet = { ...pet, weightHistory: updatedHistory };
+    setPet(updatedPet);
+    localStorage.setItem(`pet_${user?.uid}`, JSON.stringify(updatedPet));
+    setNewWeight('');
+  };
+
+  const handleAddVaccine = () => {
+    if (!newVaccine.name || !newVaccine.date || !pet) return;
+    const updatedVaccinations: VaccinationRecord[] = [...(pet.vaccinations || []), { ...newVaccine }];
+    const updatedPet = { ...pet, vaccinations: updatedVaccinations };
+    setPet(updatedPet);
+    localStorage.setItem(`pet_${user?.uid}`, JSON.stringify(updatedPet));
+    setNewVaccine({ name: '', date: '', nextDueDate: '' });
+  };
+
+  const weightDataPoints = useMemo(() => {
+    if (!pet || !pet.weightHistory || pet.weightHistory.length < 2) return null;
+    const weights = pet.weightHistory.map(w => w.weight);
+    const minW = Math.min(...weights) * 0.9;
+    const maxW = Math.max(...weights) * 1.1;
+    const range = maxW - minW;
+    const width = 300;
+    const height = 100;
+    const step = width / (pet.weightHistory.length - 1);
+    
+    return pet.weightHistory.map((w, i) => ({
+      x: i * step,
+      y: height - ((w.weight - minW) / range) * height
+    })).map(p => `${p.x},${p.y}`).join(' ');
+  }, [pet?.weightHistory]);
 
   if (!pet && !isAdding) {
     return (
@@ -228,8 +268,9 @@ const PetProfilePage: React.FC = () => {
   }
 
   return (
-    <div className="max-w-5xl mx-auto pb-20 animate-fade-in">
-      <div className="flex flex-col md:flex-row items-center gap-10 mb-16">
+    <div className="max-w-5xl mx-auto pb-20 animate-fade-in space-y-12">
+      {/* Profile Header */}
+      <div className="flex flex-col md:flex-row items-center gap-10">
         <div className="w-48 h-48 rounded-[4rem] bg-indigo-100 overflow-hidden shadow-2xl border-4 border-white"><img src={`https://picsum.photos/seed/${pet.name}/400`} className="w-full h-full object-cover" /></div>
         <div className="flex-1 text-center md:text-left">
           <h2 className="text-6xl font-black text-slate-900 mb-3 tracking-tighter">{pet.name}</h2>
@@ -237,6 +278,73 @@ const PetProfilePage: React.FC = () => {
           <div className="flex gap-4 mt-8 justify-center md:justify-start">
             <button className="px-8 py-3 bg-indigo-600 text-white font-bold rounded-2xl hover:bg-indigo-700 shadow-xl transition-all">Edit Profile</button>
             <button onClick={() => { if(confirm("Delete profile?")) { localStorage.removeItem(`pet_${user?.uid}`); setPet(null); } }} className="px-8 py-3 border border-rose-100 text-rose-500 font-bold rounded-2xl hover:bg-rose-50 transition-all">Delete</button>
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
+        {/* Weight Tracking */}
+        <div className="bg-white p-10 rounded-[3rem] border border-slate-100 shadow-sm space-y-8">
+          <div className="flex items-center justify-between">
+            <h3 className="font-black text-2xl text-slate-800 flex items-center gap-3"><Weight className="text-indigo-600" /> Weight Tracking</h3>
+            <div className="flex gap-2">
+              <input type="number" value={newWeight} onChange={e => setNewWeight(e.target.value)} placeholder="0.0 kg" className="w-24 bg-slate-50 border border-slate-100 rounded-xl px-4 py-2 text-sm outline-none" />
+              <button onClick={handleAddWeight} className="bg-indigo-600 text-white p-2 rounded-xl hover:bg-indigo-700 transition-all"><Plus size={20} /></button>
+            </div>
+          </div>
+          
+          {pet.weightHistory && pet.weightHistory.length > 0 ? (
+            <div className="space-y-6">
+              <div className="h-40 bg-indigo-50/30 rounded-3xl p-6 flex items-end justify-center">
+                {weightDataPoints ? (
+                  <svg viewBox="0 0 300 100" className="w-full h-full">
+                    <polyline fill="none" stroke="#4f46e5" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" points={weightDataPoints} />
+                  </svg>
+                ) : (
+                  <p className="text-slate-400 text-xs font-bold uppercase tracking-widest">Add more data for chart</p>
+                )}
+              </div>
+              <div className="max-h-40 overflow-y-auto pr-2 space-y-2">
+                {pet.weightHistory.map((w, i) => (
+                  <div key={i} className="flex justify-between items-center p-4 bg-slate-50 rounded-2xl">
+                    <span className="text-xs font-black text-slate-400 uppercase tracking-widest">{new Date(w.date).toLocaleDateString()}</span>
+                    <span className="font-black text-slate-800">{w.weight} kg</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <div className="py-12 text-center text-slate-400 font-medium">No weight data recorded.</div>
+          )}
+        </div>
+
+        {/* Vaccination Log */}
+        <div className="bg-white p-10 rounded-[3rem] border border-slate-100 shadow-sm space-y-8">
+          <h3 className="font-black text-2xl text-slate-800 flex items-center gap-3"><Syringe className="text-indigo-600" /> Vaccinations</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <input value={newVaccine.name} onChange={e => setNewVaccine({...newVaccine, name: e.target.value})} placeholder="Vaccine Name" className="bg-slate-50 border border-slate-100 rounded-xl px-4 py-2 text-sm outline-none" />
+            <input type="date" value={newVaccine.date} onChange={e => setNewVaccine({...newVaccine, date: e.target.value})} className="bg-slate-50 border border-slate-100 rounded-xl px-4 py-2 text-sm outline-none" />
+            <div className="flex gap-2 md:col-span-2">
+              <input type="date" value={newVaccine.nextDueDate} onChange={e => setNewVaccine({...newVaccine, nextDueDate: e.target.value})} className="flex-1 bg-slate-50 border border-slate-100 rounded-xl px-4 py-2 text-sm outline-none" />
+              <button onClick={handleAddVaccine} className="bg-indigo-600 text-white px-6 py-2 rounded-xl font-bold text-sm hover:bg-indigo-700 transition-all flex items-center gap-2"><Plus size={16} /> Add</button>
+            </div>
+          </div>
+
+          <div className="space-y-3">
+            {pet.vaccinations && pet.vaccinations.length > 0 ? pet.vaccinations.map((v, i) => (
+              <div key={i} className="p-4 bg-indigo-50 border border-indigo-100 rounded-2xl flex justify-between items-center">
+                <div>
+                  <h4 className="font-black text-indigo-900">{v.name}</h4>
+                  <p className="text-[10px] font-black text-indigo-400 uppercase tracking-widest">Administered: {v.date}</p>
+                </div>
+                {v.nextDueDate && (
+                  <div className="text-right">
+                    <p className="text-[10px] font-black text-rose-400 uppercase tracking-widest">Next Due</p>
+                    <p className="font-black text-rose-600 text-sm">{v.nextDueDate}</p>
+                  </div>
+                )}
+              </div>
+            )) : <p className="py-12 text-center text-slate-400 font-medium">No vaccinations logged.</p>}
           </div>
         </div>
       </div>

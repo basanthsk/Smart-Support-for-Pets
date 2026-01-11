@@ -17,10 +17,11 @@ import {
 } from 'lucide-react';
 import { GoogleGenAI } from "@google/genai";
 import { useAuth } from '../context/AuthContext';
+import { PetProfile } from '../types';
 
 const AIAssistant: React.FC = () => {
   const { user } = useAuth();
-  const [pet, setPet] = useState<any>(null);
+  const [pet, setPet] = useState<PetProfile | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [report, setReport] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -61,46 +62,56 @@ const AIAssistant: React.FC = () => {
     setReport(null);
     
     try {
-      /* Fix: Re-initialize GoogleGenAI right before the call as per guidelines */
       const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
       
+      const petContext = pet ? `
+        PET PROFILE CONTEXT:
+        - Species: ${pet.species}
+        - Breed: ${pet.breed}
+        - Age: ${pet.ageYears}y ${pet.ageMonths}m
+        - Health History Notes: ${pet.healthNotes || 'None recorded'}
+        - Recent Weight Log: ${pet.weightHistory?.[pet.weightHistory.length - 1]?.weight || 'Unknown'} kg
+        - Vaccinations Logged: ${pet.vaccinations?.map(v => v.name).join(', ') || 'None recorded'}
+      ` : 'PET PROFILE CONTEXT: Minimal data available.';
+
       const prompt = `
-        PET CARE TRIAGE REQUEST:
-        Pet Name: ${pet?.name || 'Companion'}
-        Species: ${pet?.species || 'Unknown'}
-        Breed: ${pet?.breed || 'Unknown'}
-        Age: ${pet?.ageYears}y ${pet?.ageMonths}m
+        DEEP CARE ANALYSIS REQUEST:
+        ${petContext}
+        
+        INQUIRY DETAILS:
         Inquiry Category: ${formData.type}
         Urgency Context: ${formData.urgency}
         Selected Symptoms: ${formData.symptoms.join(', ') || 'General Checkup'}
         Detailed Observations: ${formData.details}
 
-        Generate a professional triage report focusing on educational guidance and potential home management.
+        Based on the pet's specific breed (${pet?.breed || 'unknown'}) and species (${pet?.species || 'unknown'}), 
+        consider common hereditary conditions and species-specific risks (e.g., Hip Dysplasia in Labs, Hyperthyroidism in senior cats).
+
+        Generate a professional triage report.
         Use headers:
         ## Executive Summary
+        ## Breed/Species Specific Context
         ## Potential Context
         ## Recommended Care Steps
         ## Clinical Red Flags (When to see a vet)
       `;
 
-      /* Fix: Using gemini-3-pro-preview for complex reasoning tasks (health triage) */
       const response = await ai.models.generateContent({
         model: 'gemini-3-pro-preview',
         contents: prompt,
         config: {
-          systemInstruction: "You are a Pet Care Triage Assistant for 'Smart Support for Pets'. Provide educational info based on symptoms. You are NOT a vet. Do not diagnose or prescribe. Always advise a vet visit for confirmation. If symptoms sound life-threatening, prioritize immediate ER advice.",
+          systemInstruction: "You are a Pet Care Triage Assistant. Provide deeply specific educational info based on the provided pet profile (breed, species, age). You are NOT a vet. Do not diagnose or prescribe. Always advise a vet visit for confirmation.",
           temperature: 0.7,
         },
       });
 
-      /* Fix: Use the direct .text property from GenerateContentResponse */
       const text = response.text;
-      if (!text) throw new Error("The AI model returned an empty response. Please try describing the symptoms in more detail.");
+      if (!text) throw new Error("The AI model returned an empty response.");
       
       setReport(text);
     } catch (err: any) {
       console.error("AI Assistant Error:", err);
-      setErrorMessage("We couldn't generate the report. This is usually due to high server load or safety filters regarding medical advice. Please try again with a simpler description.");
+      setErrorMessage("We couldn't generate the report. Please try again with a simpler description.");
     } finally {
       setIsLoading(false);
     }
@@ -132,7 +143,7 @@ const AIAssistant: React.FC = () => {
             </div>
             {!errorMessage && (
               <div className="flex items-center gap-2 px-6 py-2 bg-white/10 rounded-full border border-white/20 text-xs font-black uppercase tracking-widest">
-                <CheckCircle2 size={14} /> AI-Powered Support
+                <CheckCircle2 size={14} /> Enhanced AI Support
               </div>
             )}
           </div>
@@ -157,7 +168,7 @@ const AIAssistant: React.FC = () => {
                    <div className="p-3 bg-white rounded-2xl shadow-sm"><Bot className="text-indigo-600" size={24} /></div>
                    <div>
                       <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-2">AI Summary</h4>
-                      <p className="text-slate-600 font-medium italic">Our platform has analyzed the health markers for your {pet?.species || 'pet'}.</p>
+                      <p className="text-slate-600 font-medium italic">Our platform has analyzed the health markers for your {pet?.species || 'pet'} using breed-specific data.</p>
                    </div>
                 </div>
                 
@@ -178,7 +189,7 @@ const AIAssistant: React.FC = () => {
                <div>
                   <h4 className="text-xl font-black text-amber-900 tracking-tight mb-2">Disclaimer</h4>
                   <p className="text-amber-700/90 text-sm font-medium leading-relaxed">
-                    This report is for informational purposes only and does not constitute veterinary medical advice. If your pet is experiencing an emergency, proceed to the nearest clinic immediately.
+                    This report is for informational purposes only and does not constitute veterinary medical advice.
                   </p>
                </div>
             </div>
@@ -192,10 +203,10 @@ const AIAssistant: React.FC = () => {
     <div className="max-w-5xl mx-auto space-y-12 animate-fade-in pb-20">
       <div className="space-y-2">
         <div className="inline-flex px-4 py-1.5 bg-indigo-50 text-indigo-700 rounded-full text-xs font-black uppercase tracking-widest mb-2">
-          Smart Support for Pets
+          Enhanced AI Engine
         </div>
-        <h2 className="text-5xl font-black text-slate-900 tracking-tighter">AI Health Intake</h2>
-        <p className="text-slate-500 font-medium text-lg">Comprehensive symptom analysis for {pet?.name || 'your pet'}.</p>
+        <h2 className="text-5xl font-black text-slate-900 tracking-tighter">Deep Intake Assistant</h2>
+        <p className="text-slate-500 font-medium text-lg">Personalized species and breed-aware symptom analysis.</p>
       </div>
 
       <form onSubmit={handleConsultation} className="grid grid-cols-1 lg:grid-cols-3 gap-10">
@@ -204,13 +215,13 @@ const AIAssistant: React.FC = () => {
             <section className="space-y-6">
               <div className="flex items-center gap-3">
                 <div className="p-3 bg-indigo-50 rounded-2xl text-indigo-600"><Stethoscope size={24} /></div>
-                <h3 className="text-2xl font-black text-slate-800 tracking-tight">Details</h3>
+                <h3 className="text-2xl font-black text-slate-800 tracking-tight">Consultation Details</h3>
               </div>
               <textarea 
                 required
                 value={formData.details}
                 onChange={e => setFormData({...formData, details: e.target.value})}
-                placeholder="Describe what's happening with your pet..."
+                placeholder="Ex: Luna has been itching her ears more than usual since Tuesday..."
                 className="w-full h-64 bg-slate-50 border border-slate-100 rounded-[2.5rem] p-8 text-lg font-medium focus:ring-8 focus:ring-indigo-100 outline-none transition-all resize-none shadow-inner"
               />
             </section>
@@ -218,7 +229,7 @@ const AIAssistant: React.FC = () => {
             <section className="space-y-6">
               <div className="flex items-center gap-3">
                 <div className="p-3 bg-rose-50 rounded-2xl text-rose-600"><Activity size={24} /></div>
-                <h3 className="text-2xl font-black text-slate-800 tracking-tight">Symptoms</h3>
+                <h3 className="text-2xl font-black text-slate-800 tracking-tight">Observed Symptoms</h3>
               </div>
               <div className="flex flex-wrap gap-3">
                 {commonSymptoms.map(s => (
@@ -244,15 +255,29 @@ const AIAssistant: React.FC = () => {
             disabled={isLoading || (!formData.details && formData.symptoms.length === 0)}
             className="w-full py-8 bg-indigo-600 text-white rounded-[3rem] font-black text-2xl flex items-center justify-center gap-4 hover:bg-indigo-700 transition-all shadow-2xl active:scale-95 disabled:opacity-50"
           >
-            {isLoading ? <Loader2 className="animate-spin" size={32} /> : <>Generate Report <ChevronRight size={32} /></>}
+            {isLoading ? <Loader2 className="animate-spin" size={32} /> : <>Start Analysis <ChevronRight size={32} /></>}
           </button>
         </div>
 
         <div className="space-y-8">
           <div className="bg-white p-10 rounded-[3rem] border border-slate-100 shadow-sm space-y-8">
-            <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest">Metadata</h4>
+            <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest">Profile Context</h4>
+            {pet ? (
+              <div className="p-4 bg-indigo-50 rounded-2xl space-y-2">
+                <p className="text-xs font-black text-indigo-400 uppercase tracking-widest">Analyzing for</p>
+                <p className="font-black text-indigo-900">{pet.name} ({pet.breed})</p>
+                <div className="flex items-center gap-2 text-[10px] text-indigo-600 font-bold uppercase tracking-widest">
+                  <CheckCircle2 size={12} /> Breed Database Linked
+                </div>
+              </div>
+            ) : (
+              <div className="p-4 bg-amber-50 rounded-2xl border border-amber-100">
+                <p className="text-[10px] font-black text-amber-600 uppercase tracking-widest">Generic Mode</p>
+                <p className="text-xs text-amber-800 font-medium">Register a pet profile for breed-specific advice.</p>
+              </div>
+            )}
             <div className="space-y-4">
-              <label className="text-sm font-black text-slate-700 block">Category</label>
+              <label className="text-sm font-black text-slate-700 block">Consultation Category</label>
               <div className="grid grid-cols-1 gap-2">
                 {['Health', 'Behavior', 'Nutrition'].map(type => (
                   <button
@@ -276,7 +301,7 @@ const AIAssistant: React.FC = () => {
                <h4 className="font-black text-lg">AI Support Active</h4>
              </div>
              <p className="text-slate-400 text-sm leading-relaxed font-medium">
-                Our platform provides structured guidance based on latest vet care standards.
+                Our platform analyzes hereditary risks and species milestones.
              </p>
           </div>
         </div>

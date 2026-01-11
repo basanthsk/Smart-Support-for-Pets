@@ -25,3 +25,25 @@ export interface User {
   displayName: string | null;
   photoURL: string | null;
 }
+
+export interface WeightRecord {
+  date: string;
+  weight: number;
+}
+
+export interface VaccinationRecord {
+  name: string;
+  date: string;
+  nextDueDate: string;
+}
+
+export interface PetProfile {
+  name: string;
+  species: string;
+  breed: string;
+  ageYears: string;
+  ageMonths: string;
+  healthNotes?: string;
+  weightHistory: WeightRecord[];
+  vaccinations: VaccinationRecord[];
+}
