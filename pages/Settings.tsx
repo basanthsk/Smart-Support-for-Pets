@@ -23,8 +23,9 @@ import {
 import { useAuth } from '../context/AuthContext';
 import { logout } from '../services/firebase';
 /* Fix: Standardized named imports from react-router-dom */
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { BREED_DATA } from '../App';
+import { AppRoutes } from '../types';
 
 const Settings: React.FC = () => {
   const { user } = useAuth();
@@ -315,10 +316,10 @@ const Settings: React.FC = () => {
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            <a href="#" className="p-8 bg-slate-50 rounded-[2.5rem] border border-slate-100 hover:bg-white hover:shadow-xl transition-all group flex flex-col items-center gap-4 text-center">
+            <Link to={AppRoutes.TERMS} className="p-8 bg-slate-50 rounded-[2.5rem] border border-slate-100 hover:bg-white hover:shadow-xl transition-all group flex flex-col items-center gap-4 text-center">
               <FileText className="text-indigo-600 group-hover:scale-110 transition-transform" size={32} />
               <span className="font-black text-sm text-slate-800">Terms of Service</span>
-            </a>
+            </Link>
             <a href="#" className="p-8 bg-slate-50 rounded-[2.5rem] border border-slate-100 hover:bg-white hover:shadow-xl transition-all group flex flex-col items-center gap-4 text-center">
               <Shield className="text-indigo-600 group-hover:scale-110 transition-transform" size={32} />
               <span className="font-black text-sm text-slate-800">Privacy Policy</span>

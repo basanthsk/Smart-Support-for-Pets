@@ -9,6 +9,7 @@ export enum AppRoutes {
   HEALTH_CHECKUP = '/health-checkup',
   PET_CARE = '/pet-care',
   SETTINGS = '/settings',
+  TERMS = '/terms',
 }
 
 export interface NavItem {
