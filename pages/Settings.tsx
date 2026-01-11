@@ -320,10 +320,10 @@ const Settings: React.FC = () => {
               <FileText className="text-indigo-600 group-hover:scale-110 transition-transform" size={32} />
               <span className="font-black text-sm text-slate-800">Terms of Service</span>
             </Link>
-            <a href="#" className="p-8 bg-slate-50 rounded-[2.5rem] border border-slate-100 hover:bg-white hover:shadow-xl transition-all group flex flex-col items-center gap-4 text-center">
+            <Link to={AppRoutes.PRIVACY} className="p-8 bg-slate-50 rounded-[2.5rem] border border-slate-100 hover:bg-white hover:shadow-xl transition-all group flex flex-col items-center gap-4 text-center">
               <Shield className="text-indigo-600 group-hover:scale-110 transition-transform" size={32} />
               <span className="font-black text-sm text-slate-800">Privacy Policy</span>
-            </a>
+            </Link>
             <a href="mailto:support@smartpetcare.ai" className="p-8 bg-slate-50 rounded-[2.5rem] border border-slate-100 hover:bg-white hover:shadow-xl transition-all group flex flex-col items-center gap-4 text-center">
               <Mail className="text-indigo-600 group-hover:scale-110 transition-transform" size={32} />
               <span className="font-black text-sm text-slate-800">Contact Support</span>

@@ -10,6 +10,7 @@ export enum AppRoutes {
   PET_CARE = '/pet-care',
   SETTINGS = '/settings',
   TERMS = '/terms',
+  PRIVACY = '/privacy',
 }
 
 export interface NavItem {

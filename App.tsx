@@ -10,6 +10,7 @@ import Login from './pages/Login';
 import Settings from './pages/Settings';
 import Community from './pages/Community';
 import Terms from './pages/Terms';
+import Privacy from './pages/Privacy';
 import { AppRoutes } from './types';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { 
@@ -255,6 +256,7 @@ const AppContent: React.FC = () => {
       <Route path={AppRoutes.PET_PROFILE} element={<ProtectedRoute><PetProfilePage /></ProtectedRoute>} />
       <Route path={AppRoutes.CREATE_POST} element={<ProtectedRoute><Community /></ProtectedRoute>} />
       <Route path={AppRoutes.TERMS} element={<ProtectedRoute><Terms /></ProtectedRoute>} />
+      <Route path={AppRoutes.PRIVACY} element={<ProtectedRoute><Privacy /></ProtectedRoute>} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
