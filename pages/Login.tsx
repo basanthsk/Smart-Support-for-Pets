@@ -2,7 +2,8 @@
 import React, { useState } from 'react';
 import { Heart, Shield, Mail, Lock, User, MapPin, PawPrint, Loader2, ArrowRight, AlertCircle } from 'lucide-react';
 import { loginWithGoogle, loginWithEmail, signUpWithEmail } from '../services/firebase';
-import { useNavigate } from 'react-router-dom';
+/* Fix: Standardized named imports from react-router-dom */
+import { useNavigate } from "react-router-dom";
 
 const Login: React.FC = () => {
   const navigate = useNavigate();

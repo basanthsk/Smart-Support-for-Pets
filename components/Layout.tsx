@@ -3,7 +3,8 @@ import React, { useState } from 'react';
 import { Menu, Bell, User as UserIcon } from 'lucide-react';
 import Sidebar from './Sidebar';
 import { useAuth } from '../context/AuthContext';
-import { Link } from 'react-router-dom';
+/* Fix: Standardized named imports from react-router-dom */
+import { Link } from "react-router-dom";
 import { AppRoutes } from '../types';
 
 interface LayoutProps {

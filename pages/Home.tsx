@@ -2,7 +2,8 @@
 import React, { useEffect, useState } from 'react';
 import { ShieldCheck, Heart, Calendar, Activity, Plus, PawPrint, Dog, ChevronRight } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { Link } from 'react-router-dom';
+/* Fix: Standardized named imports from react-router-dom */
+import { Link } from "react-router-dom";
 import { AppRoutes } from '../types';
 
 const StatCard: React.FC<{ icon: React.ElementType, label: string, value: string, color: string }> = ({ icon: Icon, label, value, color }) => (

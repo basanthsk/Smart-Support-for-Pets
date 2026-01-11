@@ -1,6 +1,7 @@
 
 import React from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+/* Fix: Standardized named imports from react-router-dom with explicit double quotes for better resolution */
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { 
   Home, 
   MessageSquare, 

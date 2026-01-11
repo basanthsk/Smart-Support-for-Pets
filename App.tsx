@@ -1,5 +1,7 @@
+
 import React, { useState, useEffect } from 'react';
-import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+/* Fix: Standardized named imports from react-router-dom using double quotes */
+import { HashRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import Layout from './components/Layout';
 import Home from './pages/Home';
 import AIAssistant from './pages/AIAssistant';

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { 
   Bot, 
@@ -60,6 +61,7 @@ const AIAssistant: React.FC = () => {
     setReport(null);
     
     try {
+      /* Fix: Re-initialize GoogleGenAI right before the call as per guidelines */
       const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
       
       const prompt = `
@@ -81,15 +83,17 @@ const AIAssistant: React.FC = () => {
         ## Clinical Red Flags (When to see a vet)
       `;
 
+      /* Fix: Using gemini-3-pro-preview for complex reasoning tasks (health triage) */
       const response = await ai.models.generateContent({
-        model: 'gemini-3-flash-preview',
-        contents: [{ parts: [{ text: prompt }] }],
+        model: 'gemini-3-pro-preview',
+        contents: prompt,
         config: {
           systemInstruction: "You are a Pet Care Triage Assistant for 'Smart Support for Pets'. Provide educational info based on symptoms. You are NOT a vet. Do not diagnose or prescribe. Always advise a vet visit for confirmation. If symptoms sound life-threatening, prioritize immediate ER advice.",
           temperature: 0.7,
         },
       });
 
+      /* Fix: Use the direct .text property from GenerateContentResponse */
       const text = response.text;
       if (!text) throw new Error("The AI model returned an empty response. Please try describing the symptoms in more detail.");
       
