@@ -21,17 +21,20 @@ import {
   ToggleRight,
   Syringe,
   Weight,
-  Sparkles
+  Sparkles,
+  Zap,
+  Activity
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { useNotifications } from '../context/NotificationContext';
 import { logout } from '../services/firebase';
-/* Fix: Standardized named imports from react-router-dom */
 import { useNavigate, Link } from "react-router-dom";
 import { BREED_DATA } from '../App';
 import { AppRoutes } from '../types';
 
 const Settings: React.FC = () => {
   const { user } = useAuth();
+  const { permissionStatus, addNotification, requestPermission } = useNotifications();
   const navigate = useNavigate();
   const [pet, setPet] = useState<any>(null);
   const [saveStatus, setSaveStatus] = useState<string | null>(null);
@@ -80,11 +83,14 @@ const Settings: React.FC = () => {
     localStorage.setItem(key, String(newVal));
   };
 
-  const clearAiHistory = () => {
-    if(confirm("Are you sure you want to clear history?")) {
-      setSaveStatus('AI History cleared.');
-      setTimeout(() => setSaveStatus(null), 3000);
-    }
+  const handleTestNotification = () => {
+    addNotification(
+      'SSP System Test',
+      'This is a test notification from your pet care assistant! System is online.',
+      'success'
+    );
+    setSaveStatus('Test notification sent!');
+    setTimeout(() => setSaveStatus(null), 3000);
   };
 
   return (
@@ -106,10 +112,63 @@ const Settings: React.FC = () => {
       </div>
 
       <div className="space-y-8">
+        {/* Notification Diagnostics Section */}
+        <div className="bg-white rounded-[3.5rem] p-10 md:p-14 border border-slate-100 shadow-sm space-y-10">
+          <div className="flex items-center gap-4">
+            <div className="p-4 bg-indigo-600 rounded-3xl text-white">
+              <Zap size={28} />
+            </div>
+            <div>
+              <h3 className="text-2xl font-black text-slate-800 tracking-tight">Diagnostics</h3>
+              <p className="text-slate-400 text-sm font-medium">Troubleshoot features and verify system status</p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div className="p-8 bg-slate-50 rounded-[2.5rem] border border-slate-100 space-y-4">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Browser Permission</span>
+                <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${
+                  permissionStatus === 'granted' ? 'bg-emerald-100 text-emerald-700' : 
+                  permissionStatus === 'denied' ? 'bg-rose-100 text-rose-700' : 'bg-amber-100 text-amber-700'
+                }`}>
+                  {permissionStatus}
+                </span>
+              </div>
+              <p className="text-sm font-medium text-slate-600 leading-relaxed">
+                {permissionStatus === 'granted' 
+                  ? "Browser notifications are active. You will receive system alerts."
+                  : permissionStatus === 'denied'
+                  ? "Notifications are blocked. Please reset your browser site settings."
+                  : "Notifications are not yet authorized."}
+              </p>
+              {permissionStatus !== 'granted' && (
+                <button 
+                  onClick={requestPermission}
+                  className="w-full bg-white border border-slate-200 py-3 rounded-xl font-black text-xs uppercase tracking-widest hover:border-indigo-600 hover:text-indigo-600 transition-all"
+                >
+                  Request Permissions
+                </button>
+              )}
+            </div>
+
+            <button 
+              onClick={handleTestNotification}
+              className="group flex flex-col items-center justify-center p-8 bg-indigo-50 border border-indigo-100 rounded-[2.5rem] hover:bg-indigo-600 transition-all"
+            >
+              <div className="p-4 bg-white rounded-2xl text-indigo-600 mb-4 group-hover:scale-110 transition-transform">
+                <Activity size={32} />
+              </div>
+              <span className="font-black text-indigo-900 group-hover:text-white transition-colors">Test System Notifications</span>
+              <span className="text-[10px] font-black text-indigo-400 uppercase tracking-widest mt-1 group-hover:text-white/60">Verify alerts are working</span>
+            </button>
+          </div>
+        </div>
+
         {/* Section 1: Account Settings */}
         <div className="bg-white rounded-[3.5rem] p-10 md:p-14 border border-slate-100 shadow-sm space-y-10">
           <div className="flex items-center gap-4">
-            <div className="p-4 bg-indigo-50 rounded-3xl text-indigo-600">
+            <div className="p-4 bg-slate-50 rounded-3xl text-slate-600">
               <User size={28} />
             </div>
             <div>
@@ -189,22 +248,6 @@ const Settings: React.FC = () => {
           </div>
         </div>
 
-        {/* Other Sections (Pet Profile, AI, Theme) - Keep as per existing but integrated */}
-        {pet && (
-          <div className="bg-white rounded-[3.5rem] p-10 md:p-14 border border-slate-100 shadow-sm space-y-10 opacity-70">
-            <div className="flex items-center gap-4">
-              <div className="p-4 bg-rose-50 rounded-3xl text-rose-600">
-                <Dog size={28} />
-              </div>
-              <div>
-                <h3 className="text-2xl font-black text-slate-800 tracking-tight">Pet Information</h3>
-                <p className="text-slate-400 text-sm font-medium">Update companion details</p>
-              </div>
-            </div>
-             <p className="text-slate-400 text-sm font-bold italic">Detailed updates available on the Pet Profile page.</p>
-          </div>
-        )}
-
         {/* Global UI Preferences */}
         <div className="bg-white rounded-[3.5rem] p-10 md:p-14 border border-slate-100 shadow-sm space-y-10">
           <div className="flex items-center gap-4">
@@ -252,6 +295,41 @@ const Settings: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Delete Account Modal */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-slate-900/80 backdrop-blur-md animate-in fade-in duration-300">
+          <div className="bg-white rounded-[3.5rem] p-12 max-w-lg w-full shadow-2xl space-y-8 animate-in zoom-in-95 duration-300">
+            <div className="w-20 h-20 bg-rose-50 rounded-[2rem] flex items-center justify-center text-rose-600 mx-auto">
+              <Trash2 size={40} />
+            </div>
+            <div className="text-center space-y-3">
+              <h3 className="text-3xl font-black text-slate-900 tracking-tight">Are you sure?</h3>
+              <p className="text-slate-500 font-medium leading-relaxed">
+                Deleting your account will permanently remove your pet's data, medical history, and AI profiles.
+              </p>
+            </div>
+            <div className="flex flex-col gap-4">
+              <button 
+                onClick={() => {
+                  localStorage.clear();
+                  logout();
+                  navigate('/login');
+                }}
+                className="w-full bg-rose-600 text-white py-5 rounded-[2rem] font-black text-lg hover:bg-rose-700 transition-all shadow-xl shadow-rose-100"
+              >
+                Yes, Delete Everything
+              </button>
+              <button 
+                onClick={() => setShowDeleteModal(false)}
+                className="w-full bg-slate-100 text-slate-600 py-5 rounded-[2rem] font-black text-lg hover:bg-slate-200 transition-all"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

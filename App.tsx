@@ -13,6 +13,7 @@ import Terms from './pages/Terms';
 import Privacy from './pages/Privacy';
 import { AppRoutes, PetProfile, WeightRecord, VaccinationRecord } from './types';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { NotificationProvider } from './context/NotificationContext';
 import { 
   Dog, Plus, PawPrint, Weight, Palette, Fingerprint, 
   AlertCircle, Camera, Check, ChevronRight, Cat, Bird, Rabbit, 
@@ -373,7 +374,9 @@ const AppContent: React.FC = () => {
 const App: React.FC = () => (
   <Router>
     <AuthProvider>
-      <AppContent />
+      <NotificationProvider>
+        <AppContent />
+      </NotificationProvider>
     </AuthProvider>
   </Router>
 );
