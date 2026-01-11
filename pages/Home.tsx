@@ -18,8 +18,6 @@ const StatCard: React.FC<{ icon: React.ElementType, label: string, value: string
 const Home: React.FC = () => {
   const { user } = useAuth();
   const [pet, setPet] = useState<any>(null);
-
-  const LOGO_URL = "https://res.cloudinary.com/dazlddxht/image/upload/v1768111415/Smart_Support_for_Pets_tpteed.png";
   
   useEffect(() => {
     const savedPet = localStorage.getItem(`pet_${user?.uid}`);
@@ -60,8 +58,8 @@ const Home: React.FC = () => {
           <div className="absolute top-0 right-0 -mr-20 -mt-20 w-[30rem] h-[30rem] bg-white/10 rounded-full blur-[100px]"></div>
           <div className="relative z-10 flex flex-col lg:flex-row items-center justify-between gap-16 text-center lg:text-left">
             <div className="max-w-2xl">
-              <div className="inline-flex p-4 bg-white rounded-[2rem] mb-10 shadow-2xl border border-white/30 overflow-hidden w-24 h-24 items-center justify-center">
-                <img src={LOGO_URL} alt="Logo" className="w-full h-full object-contain scale-110" />
+              <div className="inline-flex p-5 bg-white/20 rounded-[2rem] mb-10 backdrop-blur-xl border border-white/30 shadow-2xl">
+                <PawPrint className="w-12 h-12 text-white" />
               </div>
               <h3 className="text-5xl font-black mb-6 leading-[1.1] tracking-tighter">Your pet's health, simplified by AI.</h3>
               <p className="text-indigo-100 text-xl mb-12 leading-relaxed font-medium">
@@ -76,8 +74,8 @@ const Home: React.FC = () => {
               </Link>
             </div>
             <div className="hidden lg:block relative">
-               <div className="w-80 h-80 bg-white rounded-[5rem] rotate-[15deg] flex items-center justify-center shadow-2xl group cursor-pointer hover:rotate-0 transition-all duration-700 p-8">
-                  <img src={LOGO_URL} alt="Large Logo" className="w-full h-full object-contain -rotate-[15deg] group-hover:rotate-0 transition-all duration-700" />
+               <div className="w-80 h-80 bg-white/10 rounded-[5rem] rotate-[15deg] flex items-center justify-center backdrop-blur-2xl border border-white/20 shadow-2xl group cursor-pointer hover:rotate-0 transition-all duration-700">
+                  <Dog size={160} className="text-white/30 -rotate-[15deg] group-hover:rotate-0 transition-all duration-700" />
                </div>
                <div className="absolute -bottom-10 -left-10 w-40 h-40 bg-indigo-400/30 rounded-full blur-[60px] animate-pulse"></div>
             </div>
