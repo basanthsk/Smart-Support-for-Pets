@@ -14,12 +14,13 @@ import {
   CircleDot,
   Trophy,
   PartyPopper,
-  Sparkles
+  Sparkles,
+  ChevronDown
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useNotifications } from '../context/NotificationContext';
 import { Link } from "react-router-dom";
-import { AppRoutes } from '../types';
+import { AppRoutes, PetProfile } from '../types';
 
 interface RoutineTask {
   id: string;
@@ -50,10 +51,10 @@ const StatCard: React.FC<{ icon: React.ElementType, label: string, value: string
 const Home: React.FC = () => {
   const { user } = useAuth();
   const { addNotification } = useNotifications();
-  const [pet, setPet] = useState<any>(null);
+  const [pets, setPets] = useState<PetProfile[]>([]);
+  const [activePet, setActivePet] = useState<PetProfile | null>(null);
   const [currentTime, setCurrentTime] = useState(new Date());
   
-  // Update time every second to handle transitions and show accurate IST clock
   useEffect(() => {
     const timer = setInterval(() => {
       setCurrentTime(new Date());
@@ -65,37 +66,36 @@ const Home: React.FC = () => {
   const todayKey = currentTime.toISOString().split('T')[0];
 
   useEffect(() => {
-    const savedPet = localStorage.getItem(`pet_${user?.uid}`);
-    if (savedPet) {
-      setPet(JSON.parse(savedPet));
-    } else {
-      setPet(null);
+    const saved = localStorage.getItem(`ssp_pets_${user?.uid}`);
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      setPets(parsed);
+      if (parsed.length > 0) setActivePet(parsed[0]);
     }
   }, [user]);
 
-  // Handle Routine Notifications logic
   useEffect(() => {
-    if (!pet) return;
+    if (!activePet) return;
 
     STAT_ROUTINE.forEach(task => {
       if (currentHour === task.startHour) {
-        const notificationKey = `notified_${task.id}_${todayKey}`;
+        const notificationKey = `notified_${task.id}_${todayKey}_${activePet.id}`;
         const alreadyNotified = localStorage.getItem(notificationKey);
         
         if (!alreadyNotified) {
           addNotification(
             `Time for ${task.task}!`, 
-            `Hey! It's ${task.timeLabel}. Time to take care of ${pet.name}.`,
+            `Hey! It's ${task.timeLabel}. Time to take care of ${activePet.name}.`,
             'info'
           );
           localStorage.setItem(notificationKey, 'true');
         }
       }
     });
-  }, [currentHour, todayKey, pet, addNotification]);
+  }, [currentHour, todayKey, activePet, addNotification]);
 
   const firstName = user?.displayName?.split(' ')[0] || 'Pet Lover';
-  const hasPet = !!pet;
+  const hasPets = pets.length > 0;
 
   const getTaskStatus = (task: RoutineTask) => {
     if (currentHour >= task.endHour) return 'done';
@@ -108,7 +108,6 @@ const Home: React.FC = () => {
     return currentHour >= lastTask.endHour;
   }, [currentHour]);
 
-  // Format date/time to Indian Standard (IST)
   const formattedIST = currentTime.toLocaleString('en-IN', {
     timeZone: 'Asia/Kolkata',
     dateStyle: 'full',
@@ -129,18 +128,36 @@ const Home: React.FC = () => {
             </p>
           </div>
         </div>
-        {hasPet && (
+        <div className="flex gap-4">
+          {hasPets && (
+            <div className="relative group">
+              <button className="flex items-center gap-3 bg-white border border-slate-200 px-6 py-4 rounded-2xl font-bold hover:bg-slate-50 transition-all shadow-sm">
+                <div className="w-6 h-6 rounded-lg overflow-hidden bg-slate-100">
+                  <img src={activePet?.avatarUrl || `https://picsum.photos/seed/${activePet?.id}/100`} className="w-full h-full object-cover" />
+                </div>
+                <span>{activePet?.name}</span>
+                <ChevronDown size={16} />
+              </button>
+              <div className="absolute right-0 top-full mt-2 w-56 bg-white rounded-2xl shadow-2xl border border-slate-100 opacity-0 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto transition-all z-50 p-2 space-y-1">
+                {pets.map(p => (
+                  <button key={p.id} onClick={() => setActivePet(p)} className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-indigo-50 transition-all font-bold text-sm text-slate-700">
+                    <div className="w-6 h-6 rounded-md overflow-hidden"><img src={p.avatarUrl || `https://picsum.photos/seed/${p.id}/100`} className="w-full h-full object-cover" /></div>
+                    {p.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
           <Link 
             to={AppRoutes.CREATE_POST}
-            className="inline-flex items-center gap-3 bg-indigo-600 text-white px-8 py-4 rounded-[2rem] font-bold hover:bg-indigo-700 transition-all shadow-xl shadow-indigo-100 active:scale-95"
+            className="inline-flex items-center gap-3 bg-indigo-600 text-white px-8 py-4 rounded-2xl font-black hover:bg-indigo-700 transition-all shadow-xl shadow-indigo-100 active:scale-95"
           >
-            <Plus size={20} />
-            Post Update
+            <Plus size={20} /> Post Moment
           </Link>
-        )}
+        </div>
       </div>
 
-      {!hasPet ? (
+      {!hasPets ? (
         <div className="bg-indigo-600 rounded-[3.5rem] p-12 md:p-20 text-white relative overflow-hidden shadow-2xl shadow-indigo-100">
           <div className="absolute top-0 right-0 -mr-20 -mt-20 w-[30rem] h-[30rem] bg-white/10 rounded-full blur-[100px]"></div>
           <div className="relative z-10 flex flex-col lg:flex-row items-center justify-between gap-16 text-center lg:text-left">
@@ -148,9 +165,9 @@ const Home: React.FC = () => {
               <div className="inline-flex p-5 bg-white/20 rounded-[2rem] mb-10 backdrop-blur-xl border border-white/30 shadow-2xl">
                 <PawPrint className="w-12 h-12 text-white" />
               </div>
-              <h3 className="text-5xl font-black mb-6 leading-[1.1] tracking-tighter">Your pet's health, simplified by AI.</h3>
+              <h3 className="text-5xl font-black mb-6 leading-[1.1] tracking-tighter">Your first pet profile is ready for creation.</h3>
               <p className="text-indigo-100 text-xl mb-12 leading-relaxed font-medium">
-                Register your companion today to unlock custom health tracking, dietary recommendations, and smart behavior monitoring.
+                Register your companions today to unlock custom health tracking, unique SSP-ID QR codes, and smart behavior monitoring.
               </p>
               <Link 
                 to={AppRoutes.PET_PROFILE}
@@ -171,27 +188,31 @@ const Home: React.FC = () => {
       ) : (
         <>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-            <StatCard icon={Heart} label="Vitals Score" value="--" color="bg-rose-500" />
+            <StatCard icon={Heart} label="Recent Weight" value={activePet?.weightHistory?.[activePet.weightHistory.length - 1]?.weight ? `${activePet.weightHistory[activePet.weightHistory.length - 1].weight} kg` : '--'} color="bg-rose-500" />
             <StatCard icon={Calendar} label="Appointments" value="None" color="bg-indigo-500" />
-            <StatCard icon={Activity} label="Exercise" value="0 min" color="bg-emerald-500" />
-            <StatCard icon={ShieldCheck} label="Safety Status" value="Secured" color="bg-amber-500" />
+            <StatCard icon={Activity} label="Exercise Today" value="0 min" color="bg-emerald-500" />
+            <StatCard icon={ShieldCheck} label="Pet Status" value="Active" color="bg-amber-500" />
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
             <div className="lg:col-span-2 bg-white rounded-[3rem] shadow-sm border border-slate-100 p-10 hover:shadow-2xl transition-all duration-500">
               <h4 className="font-black text-2xl text-slate-800 mb-8 flex items-center gap-3">
                 <Activity className="text-indigo-600 w-6 h-6" />
-                Active Monitoring
+                Active Monitoring: {activePet?.name}
               </h4>
               <Link 
                 to={AppRoutes.PET_PROFILE}
-                className="block h-80 bg-slate-50/50 rounded-[2.5rem] flex flex-col items-center justify-center border-2 border-dashed border-slate-200 group cursor-pointer hover:border-indigo-300 hover:bg-white transition-all active:scale-[0.98] outline-none focus:ring-4 focus:ring-indigo-100"
+                className="block h-80 bg-slate-50/50 rounded-[2.5rem] flex flex-col items-center justify-center border-2 border-dashed border-slate-200 group cursor-pointer hover:border-indigo-300 hover:bg-white transition-all active:scale-[0.98] outline-none focus:ring-4 focus:ring-indigo-100 overflow-hidden"
               >
-                <div className="bg-white p-6 rounded-3xl shadow-sm mb-6 group-hover:scale-110 group-hover:shadow-xl transition-all">
-                  <Plus className="text-slate-300 w-12 h-12 group-hover:text-indigo-500" />
+                <div className="flex flex-col items-center gap-6">
+                  <div className="bg-white p-6 rounded-3xl shadow-sm group-hover:scale-110 group-hover:shadow-xl transition-all">
+                    <Plus className="text-slate-300 w-12 h-12 group-hover:text-indigo-500" />
+                  </div>
+                  <div className="text-center">
+                    <p className="text-slate-400 font-black text-sm uppercase tracking-[0.2em]">Update {activePet?.name}'s Record</p>
+                    <p className="text-slate-300 text-xs mt-3 font-medium italic">Manage multiple pets in Pet Profile</p>
+                  </div>
                 </div>
-                <p className="text-slate-400 font-black text-sm uppercase tracking-[0.2em]">Start Health Log</p>
-                <p className="text-slate-300 text-xs mt-3 font-medium italic">Collect enough data for AI insights</p>
               </Link>
             </div>
 
@@ -213,15 +234,12 @@ const Home: React.FC = () => {
                   <div>
                     <h5 className="text-3xl font-black mb-2 tracking-tight">Great Job!</h5>
                     <p className="text-emerald-50 font-medium leading-relaxed">
-                      All tasks for {pet.name} are completed today. See you tomorrow at 07:00 AM!
+                      All tasks for {activePet?.name} are completed today. See you tomorrow at 07:00 AM!
                     </p>
                   </div>
                   <div className="w-full bg-black/10 rounded-3xl p-6 border border-white/10">
                     <p className="text-[10px] font-black text-white/60 uppercase tracking-[0.2em] mb-1">Last Updated (IST)</p>
                     <p className="font-bold text-sm">{currentTime.toLocaleTimeString('en-IN')}</p>
-                  </div>
-                  <div className="pt-4 flex items-center gap-2 text-white/60 text-[10px] font-black uppercase tracking-widest">
-                    <PartyPopper size={14} /> Daily Streak: 1 Day
                   </div>
                 </div>
               ) : (
@@ -263,12 +281,6 @@ const Home: React.FC = () => {
                       </div>
                     );
                   })}
-                </div>
-              )}
-
-              {!isDayComplete && (
-                <div className="mt-8 p-4 bg-slate-50 rounded-2xl border border-dashed border-slate-200 text-center">
-                   <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Resetting at Midnight IST</p>
                 </div>
               )}
             </div>

@@ -11,6 +11,7 @@ export enum AppRoutes {
   SETTINGS = '/settings',
   TERMS = '/terms',
   PRIVACY = '/privacy',
+  CHAT = '/chat',
 }
 
 export interface NavItem {
@@ -24,6 +25,8 @@ export interface User {
   email: string | null;
   displayName: string | null;
   photoURL: string | null;
+  phoneNumber?: string;
+  username?: string;
 }
 
 export interface WeightRecord {
@@ -38,15 +41,39 @@ export interface VaccinationRecord {
 }
 
 export interface PetProfile {
+  id: string;
   name: string;
   species: string;
   breed: string;
   birthday: string;
   bio: string;
   avatarUrl?: string;
+  qrCodeUrl?: string;
   ageYears?: string;
   ageMonths?: string;
   healthNotes?: string;
   weightHistory: WeightRecord[];
   vaccinations: VaccinationRecord[];
+}
+
+export interface ChatMessage {
+  id?: string;
+  senderId: string;
+  receiverId: string;
+  text: string;
+  timestamp: any;
+}
+
+export interface ChatSession {
+  id: string;
+  participants: string[];
+  lastMessage?: string;
+  lastTimestamp?: any;
+  otherUser?: {
+    uid: string;
+    displayName: string;
+    photoURL: string;
+    phoneNumber?: string;
+    username?: string;
+  };
 }

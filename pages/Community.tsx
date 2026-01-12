@@ -16,10 +16,12 @@ import {
   Filter,
   Calendar as CalendarIcon,
   X,
-  User as UserIcon
+  User as UserIcon,
+  MessageSquare
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { db } from '../services/firebase';
+import { db, startChat } from '../services/firebase';
+import { useNavigate } from "react-router-dom";
 import { 
   collection, 
   addDoc, 
@@ -29,6 +31,7 @@ import {
   serverTimestamp,
   Timestamp 
 } from "firebase/firestore";
+import { AppRoutes } from '../types';
 
 interface Post {
   id: string;
@@ -47,6 +50,7 @@ interface Post {
 
 const Community: React.FC = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [pet, setPet] = useState<any>(null);
   const [posts, setPosts] = useState<Post[]>([]);
   const [newPostContent, setNewPostContent] = useState('');
@@ -58,11 +62,13 @@ const Community: React.FC = () => {
   // Search & Filter State
   const [searchQuery, setSearchQuery] = useState('');
   const [typeFilter, setTypeFilter] = useState('All');
-  const [dateFilter, setDateFilter] = useState('Newest');
 
   useEffect(() => {
-    const savedPet = localStorage.getItem(`pet_${user?.uid}`);
-    if (savedPet) setPet(JSON.parse(savedPet));
+    const savedPet = localStorage.getItem(`ssp_pets_${user?.uid}`);
+    if (savedPet) {
+      const parsed = JSON.parse(savedPet);
+      if (parsed.length > 0) setPet(parsed[0]);
+    }
 
     const q = query(collection(db, "posts"), orderBy("createdAt", "desc"));
     
@@ -120,6 +126,14 @@ const Community: React.FC = () => {
       alert("Failed to share post.");
     } finally {
       setIsPosting(false);
+    }
+  };
+
+  const handleMessageUser = async (targetUserId: string) => {
+    if (!user || user.uid === targetUserId) return;
+    const chatId = await startChat(user.uid, targetUserId);
+    if (chatId) {
+      navigate(AppRoutes.CHAT);
     }
   };
 
@@ -228,6 +242,16 @@ const Community: React.FC = () => {
                   <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">{formatTime(post.createdAt)}</p>
                 </div>
               </div>
+              
+              {user?.uid !== post.userId && (
+                <button 
+                  onClick={() => handleMessageUser(post.userId)}
+                  className="p-3 bg-indigo-50 text-indigo-600 rounded-2xl hover:bg-indigo-600 hover:text-white transition-all shadow-sm"
+                  title="Message Pet Parent"
+                >
+                  <MessageSquare size={20} />
+                </button>
+              )}
             </div>
 
             <div className="px-8 pb-6 text-slate-700 font-medium text-lg leading-relaxed">

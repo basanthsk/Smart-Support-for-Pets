@@ -11,7 +11,22 @@ import {
   updateProfile,
   User as FirebaseUser 
 } from "firebase/auth";
-import { getFirestore, doc, setDoc, getDocs, collection, query, where, limit, updateDoc } from "firebase/firestore";
+import { 
+  getFirestore, 
+  doc, 
+  setDoc, 
+  getDocs, 
+  getDoc,
+  collection, 
+  query, 
+  where, 
+  limit, 
+  updateDoc, 
+  addDoc, 
+  serverTimestamp, 
+  orderBy, 
+  onSnapshot 
+} from "firebase/firestore";
 
 const firebaseConfig = {
   apiKey: "AIzaSyCVUMhFhDzfbvF-iXthH6StOlI6mJreTmA",
@@ -25,18 +40,24 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const db = getFirestore(app);
-const googleProvider = new GoogleAuthProvider();
 
 export const loginWithGoogle = async () => {
+  const provider = new GoogleAuthProvider();
+  provider.setCustomParameters({ prompt: 'select_account' });
+  
   try {
-    const result = await signInWithPopup(auth, googleProvider);
-    // Sync user to firestore
-    await setDoc(doc(db, "users", result.user.uid), {
-      username: result.user.displayName?.toLowerCase().replace(/\s/g, '') || result.user.uid,
-      email: result.user.email,
-      displayName: result.user.displayName
-    }, { merge: true });
-    return result.user;
+    const result = await signInWithPopup(auth, provider);
+    if (result.user) {
+      const userRef = doc(db, "users", result.user.uid);
+      await setDoc(userRef, {
+        username: result.user.displayName?.toLowerCase().replace(/\s/g, '') || result.user.uid,
+        email: result.user.email,
+        displayName: result.user.displayName,
+        photoURL: result.user.photoURL,
+        lastLogin: new Date().toISOString()
+      }, { merge: true });
+      return result.user;
+    }
   } catch (error: any) {
     console.error("Google login failed:", error);
     throw error;
@@ -46,7 +67,6 @@ export const loginWithGoogle = async () => {
 export const loginWithIdentifier = async (identifier: string, pass: string) => {
   try {
     let email = identifier;
-    // Check if identifier is a username (doesn't contain @)
     if (!identifier.includes('@')) {
       const q = query(collection(db, "users"), where("username", "==", identifier.toLowerCase()), limit(1));
       const querySnapshot = await getDocs(q);
@@ -63,75 +83,51 @@ export const loginWithIdentifier = async (identifier: string, pass: string) => {
   }
 };
 
-export const checkUsernameUnique = async (username: string, currentUid: string) => {
-  const q = query(
-    collection(db, "users"), 
-    where("username", "==", username.toLowerCase()), 
-    limit(1)
-  );
-  const querySnapshot = await getDocs(q);
-  if (querySnapshot.empty) return true;
-  
-  // If it's the current user's own username, it's technically "available" for them to keep
-  return querySnapshot.docs[0].id === currentUid;
-};
-
-export const updateUserProfile = async (uid: string, data: { displayName?: string, username?: string }) => {
+export const updateUserProfile = async (uid: string, data: { displayName?: string, username?: string, phoneNumber?: string }) => {
   const user = auth.currentUser;
   if (!user) throw new Error("No authenticated user found.");
 
-  // 1. If username is being changed, check uniqueness
-  if (data.username) {
-    const isUnique = await checkUsernameUnique(data.username, uid);
-    if (!isUnique) {
-      throw new Error("This username is already taken. Please try another one.");
-    }
-  }
-
-  // 2. Update Firebase Auth (for the header/session)
-  if (data.displayName) {
-    await updateProfile(user, { displayName: data.displayName });
-  }
-
-  // 3. Update Firestore (for the database records)
   const userRef = doc(db, "users", uid);
-  const firestoreData: any = {};
-  if (data.displayName) firestoreData.displayName = data.displayName;
+  const firestoreData: any = { ...data };
   if (data.username) firestoreData.username = data.username.toLowerCase().replace(/\s/g, '');
   
   await updateDoc(userRef, firestoreData);
-  
-  // Force reload of user profile to sync the changes in current session
+  if (data.displayName) await updateProfile(user, { displayName: data.displayName });
   await user.reload();
   return auth.currentUser;
 };
 
-export const signUpWithEmail = async (email: string, pass: string, displayName: string, username: string) => {
-  try {
-    // 1. Check if username exists
-    const q = query(collection(db, "users"), where("username", "==", username.toLowerCase()), limit(1));
-    const querySnapshot = await getDocs(q);
-    if (!querySnapshot.empty) {
-      throw new Error("Username already taken.");
-    }
+// Chat Functions
+export const startChat = async (currentUid: string, targetUid: string) => {
+  if (currentUid === targetUid) return null;
+  const chatId = [currentUid, targetUid].sort().join('_');
+  const chatRef = doc(db, "chats", chatId);
+  const chatSnap = await getDoc(chatRef);
 
-    const result = await createUserWithEmailAndPassword(auth, email, pass);
-    await updateProfile(result.user, { displayName });
-    
-    // 2. Store user in Firestore
-    await setDoc(doc(db, "users", result.user.uid), {
-      username: username.toLowerCase(),
-      email: email,
-      displayName: displayName,
-      createdAt: new Date().toISOString()
+  if (!chatSnap.exists()) {
+    await setDoc(chatRef, {
+      participants: [currentUid, targetUid],
+      createdAt: serverTimestamp(),
+      lastMessage: "",
+      lastTimestamp: serverTimestamp()
     });
-
-    await result.user.reload();
-    return auth.currentUser;
-  } catch (error: any) {
-    console.error("Sign up failed:", error);
-    throw error;
   }
+  return chatId;
+};
+
+export const sendChatMessage = async (chatId: string, senderId: string, text: string) => {
+  const messagesRef = collection(db, "chats", chatId, "messages");
+  await addDoc(messagesRef, {
+    senderId,
+    text,
+    timestamp: serverTimestamp()
+  });
+  
+  const chatRef = doc(db, "chats", chatId);
+  await updateDoc(chatRef, {
+    lastMessage: text,
+    lastTimestamp: serverTimestamp()
+  });
 };
 
 export const logout = async () => {

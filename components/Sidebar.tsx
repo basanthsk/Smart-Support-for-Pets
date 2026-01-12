@@ -1,6 +1,5 @@
 
 import React from 'react';
-/* Fix: Standardized named imports from react-router-dom with explicit double quotes for better resolution */
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { 
   Home, 
@@ -13,7 +12,8 @@ import {
   ChevronRight,
   Stethoscope,
   Settings,
-  Sparkles
+  Sparkles,
+  Send
 } from 'lucide-react';
 import { AppRoutes, NavItem } from '../types';
 import { logout } from '../services/firebase';
@@ -34,6 +34,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen, isCollapsed, setIs
     { label: 'AI Support', path: AppRoutes.AI_ASSISTANT, icon: MessageSquare },
     { label: 'Daily Care', path: AppRoutes.PET_CARE, icon: Sparkles },
     { label: 'Community', path: AppRoutes.CREATE_POST, icon: PlusSquare },
+    { label: 'Messages', path: AppRoutes.CHAT, icon: Send },
     { label: 'Health Hub', path: AppRoutes.HEALTH_CHECKUP, icon: Stethoscope },
     { label: 'Pet Profile', path: AppRoutes.PET_PROFILE, icon: Dog },
     { label: 'Settings', path: AppRoutes.SETTINGS, icon: Settings },
@@ -52,13 +53,11 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen, isCollapsed, setIs
 
   return (
     <>
-      {/* Mobile Overlay */}
       <div 
         className={`fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-40 transition-opacity duration-500 md:hidden ${isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
         onClick={() => setIsOpen(false)}
       />
 
-      {/* Slide Navigation Sidebar */}
       <aside className={`
         fixed inset-y-0 left-0 z-50 bg-white shadow-[25px_0_50px_-15px_rgba(0,0,0,0.1)] transform transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)]
         md:relative md:translate-x-0
@@ -66,7 +65,6 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen, isCollapsed, setIs
         ${isCollapsed ? 'md:w-24' : 'md:w-72'}
         w-72 flex flex-col border-r border-slate-100
       `}>
-        {/* Sidebar Header */}
         <div className={`h-20 flex items-center justify-between px-6 flex-shrink-0 transition-all duration-500 ${!isCollapsed || isOpen ? 'bg-indigo-600' : 'bg-white border-b border-slate-50'}`}>
           <div className={`flex items-center gap-4 overflow-hidden transition-all duration-500 ${isCollapsed && !isOpen ? 'md:justify-center w-full' : ''}`}>
             <div className={`w-10 h-10 rounded-xl flex-shrink-0 shadow-lg flex items-center justify-center transition-all duration-500 ${!isCollapsed || isOpen ? 'bg-white rotate-0' : 'bg-indigo-600 rotate-12'}`}>
@@ -92,7 +90,6 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen, isCollapsed, setIs
           </button>
         </div>
 
-        {/* Navigation Section */}
         <nav className="flex-1 px-4 py-8 space-y-2 overflow-y-auto custom-scrollbar">
           {navItems.map((item) => {
             const isActive = location.pathname === item.path;
@@ -114,7 +111,6 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen, isCollapsed, setIs
                   <span className="text-sm font-bold tracking-tight">{item.label}</span>
                 )}
                 
-                {/* Tooltip for Collapsed State */}
                 {isCollapsed && !isOpen && (
                    <div className="absolute left-20 bg-slate-900 text-white px-3 py-2 rounded-xl text-xs font-bold opacity-0 group-hover:opacity-100 pointer-events-none transition-all translate-x-4 group-hover:translate-x-0 hidden md:block z-[60] whitespace-nowrap shadow-2xl">
                     {item.label}
@@ -122,7 +118,6 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen, isCollapsed, setIs
                    </div>
                 )}
 
-                {/* Active Indicator Bar */}
                 {isActive && (
                   <div className="absolute left-0 w-1 h-8 bg-indigo-600 rounded-r-full"></div>
                 )}
@@ -131,7 +126,6 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen, isCollapsed, setIs
           })}
         </nav>
 
-        {/* Sidebar Footer */}
         <div className="p-4 border-t border-slate-100">
           <button
             onClick={handleLogout}
