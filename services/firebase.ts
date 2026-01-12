@@ -59,7 +59,7 @@ export const loginWithGoogle = async () => {
       return result.user;
     }
   } catch (error: any) {
-    console.error("Google login failed:", error);
+    console.error("Google login error:", error.code, error.message);
     throw error;
   }
 };
@@ -71,19 +71,18 @@ export const loginWithIdentifier = async (identifier: string, pass: string) => {
       const q = query(collection(db, "users"), where("username", "==", identifier.toLowerCase()), limit(1));
       const querySnapshot = await getDocs(q);
       if (querySnapshot.empty) {
-        throw new Error("Username not found.");
+        throw new Error("Username not found. Please try your email address.");
       }
       email = querySnapshot.docs[0].data().email;
     }
     const result = await signInWithEmailAndPassword(auth, email, pass);
     return result.user;
   } catch (error: any) {
-    console.error("Login failed:", error);
+    console.error("Login error:", error.code, error.message);
     throw error;
   }
 };
 
-// Fix: Implement missing signUpWithEmail function required by Login.tsx
 export const signUpWithEmail = async (email: string, pass: string, fullName: string, username: string) => {
   try {
     const result = await createUserWithEmailAndPassword(auth, email, pass);
@@ -103,26 +102,35 @@ export const signUpWithEmail = async (email: string, pass: string, fullName: str
     }
     throw new Error("Failed to create user account.");
   } catch (error: any) {
-    console.error("Signup failed:", error);
+    console.error("Signup error:", error.code, error.message);
     throw error;
   }
 };
 
 export const updateUserProfile = async (uid: string, data: { displayName?: string, username?: string, phoneNumber?: string }) => {
   const user = auth.currentUser;
-  if (!user) throw new Error("No authenticated user found.");
+  if (!user) throw new Error("No authenticated session found. Please log in again.");
 
   const userRef = doc(db, "users", uid);
   const firestoreData: any = { ...data };
   if (data.username) firestoreData.username = data.username.toLowerCase().replace(/\s/g, '');
   
-  await updateDoc(userRef, firestoreData);
-  if (data.displayName) await updateProfile(user, { displayName: data.displayName });
+  // CRITICAL FIX: Use setDoc with merge:true instead of updateDoc
+  // This prevents crashes if the document for some reason wasn't created during signup.
+  await setDoc(userRef, firestoreData, { merge: true });
+  
+  if (data.displayName) {
+    try {
+      await updateProfile(user, { displayName: data.displayName });
+    } catch (e) {
+      console.warn("Auth profile update failed, but Firestore was updated.");
+    }
+  }
+  
   await user.reload();
   return auth.currentUser;
 };
 
-// Chat Functions
 export const startChat = async (currentUid: string, targetUid: string) => {
   if (currentUid === targetUid) return null;
   const chatId = [currentUid, targetUid].sort().join('_');

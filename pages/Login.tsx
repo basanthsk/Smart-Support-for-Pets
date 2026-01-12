@@ -28,10 +28,14 @@ const Login: React.FC = () => {
 
   const formatFirebaseError = (err: any) => {
     const code = err.code || '';
-    if (code === 'auth/configuration-not-found') return "Auth not configured correctly.";
-    if (code === 'auth/invalid-credential') return "Invalid credentials.";
-    if (code === 'auth/email-already-in-use') return "Email already registered.";
-    return err.message || "An unexpected error occurred.";
+    if (code === 'auth/popup-blocked') return "Sign-in popup was blocked. Please enable popups for this site.";
+    if (code === 'auth/popup-closed-by-user') return "Sign-in was cancelled.";
+    if (code === 'auth/cancelled-by-user') return "Action cancelled.";
+    if (code === 'auth/invalid-credential') return "The username/email or password you entered is incorrect.";
+    if (code === 'auth/email-already-in-use') return "This email is already registered. Try signing in instead.";
+    if (code === 'auth/weak-password') return "Password should be at least 6 characters.";
+    if (code === 'auth/network-request-failed') return "Network error. Please check your internet connection.";
+    return err.message || "An unexpected authentication error occurred.";
   };
 
   const handleGoogleLogin = async () => {
@@ -86,7 +90,7 @@ const Login: React.FC = () => {
 
         <div className="md:w-7/12 p-8 md:p-12 bg-white flex flex-col justify-center">
           <div className="max-w-md mx-auto w-full">
-            <div className="mb-8">
+            <div className="mb-8 text-center md:text-left">
               <h3 className="text-3xl font-bold text-slate-800 mb-2">{isLogin ? "Welcome Back!" : "Get Started"}</h3>
               <p className="text-slate-500 text-sm">
                 {isLogin ? "Sign in with username or email." : "Create an account to join."}
@@ -94,9 +98,9 @@ const Login: React.FC = () => {
             </div>
 
             {error && (
-              <div className="mb-6 p-4 bg-red-50 border border-red-100 text-red-700 rounded-xl text-xs leading-relaxed flex items-start gap-3 animate-shake">
+              <div className="mb-6 p-4 bg-red-50 border border-red-100 text-red-700 rounded-2xl text-xs leading-relaxed flex items-start gap-3 animate-in fade-in slide-in-from-top-2">
                 <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
-                <span>{error}</span>
+                <span className="font-medium">{error}</span>
               </div>
             )}
 
@@ -105,11 +109,11 @@ const Login: React.FC = () => {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-1">
                     <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Full Name</label>
-                    <input required name="fullName" type="text" placeholder="John Doe" value={formData.fullName} onChange={handleChange} className="w-full bg-slate-50 border border-slate-100 rounded-xl py-2.5 px-4 text-sm focus:bg-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all" />
+                    <input required name="fullName" type="text" placeholder="John Doe" value={formData.fullName} onChange={handleChange} className="w-full bg-slate-50 border border-slate-100 rounded-xl py-3 px-4 text-sm focus:bg-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all" />
                   </div>
                   <div className="space-y-1">
                     <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Desired Username</label>
-                    <input required name="username" type="text" placeholder="johndoe" value={formData.username} onChange={handleChange} className="w-full bg-slate-50 border border-slate-100 rounded-xl py-2.5 px-4 text-sm focus:bg-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all" />
+                    <input required name="username" type="text" placeholder="johndoe" value={formData.username} onChange={handleChange} className="w-full bg-slate-50 border border-slate-100 rounded-xl py-3 px-4 text-sm focus:bg-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all" />
                   </div>
                 </div>
               )}
@@ -117,20 +121,20 @@ const Login: React.FC = () => {
               <div className="space-y-1">
                 <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">{isLogin ? "Username or Email" : "Email Address"}</label>
                 <div className="relative">
-                  <Mail className="absolute left-4 top-3 text-slate-400 w-4 h-4" />
-                  <input required name="identifier" type={isLogin ? "text" : "email"} placeholder={isLogin ? "Username or email" : "email@example.com"} value={formData.identifier} onChange={handleChange} className="w-full bg-slate-50 border border-slate-100 rounded-xl py-2.5 pl-10 pr-4 text-sm focus:bg-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all" />
+                  <Mail className="absolute left-4 top-3.5 text-slate-400 w-4 h-4" />
+                  <input required name="identifier" type={isLogin ? "text" : "email"} placeholder={isLogin ? "Username or email" : "email@example.com"} value={formData.identifier} onChange={handleChange} className="w-full bg-slate-50 border border-slate-100 rounded-xl py-3 pl-10 pr-4 text-sm focus:bg-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all" />
                 </div>
               </div>
 
               <div className="space-y-1">
                 <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Password</label>
                 <div className="relative">
-                  <Lock className="absolute left-4 top-3 text-slate-400 w-4 h-4" />
-                  <input required name="password" type="password" placeholder="••••••••" value={formData.password} onChange={handleChange} className="w-full bg-slate-50 border border-slate-100 rounded-xl py-2.5 pl-10 pr-4 text-sm focus:bg-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all" />
+                  <Lock className="absolute left-4 top-3.5 text-slate-400 w-4 h-4" />
+                  <input required name="password" type="password" placeholder="••••••••" value={formData.password} onChange={handleChange} className="w-full bg-slate-50 border border-slate-100 rounded-xl py-3 pl-10 pr-4 text-sm focus:bg-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all" />
                 </div>
               </div>
 
-              <button type="submit" disabled={isLoading} className="w-full bg-indigo-600 text-white py-3.5 rounded-2xl font-bold text-base hover:bg-indigo-700 transition-all active:scale-[0.98] disabled:opacity-70 flex items-center justify-center gap-2 mt-4">
+              <button type="submit" disabled={isLoading} className="w-full bg-indigo-600 text-white py-4 rounded-2xl font-bold text-base hover:bg-indigo-700 transition-all active:scale-[0.98] disabled:opacity-70 flex items-center justify-center gap-2 mt-4 shadow-lg shadow-indigo-100">
                 {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : (isLogin ? "Sign In" : "Create Account")}
                 {!isLoading && <ArrowRight size={18} />}
               </button>
@@ -142,7 +146,7 @@ const Login: React.FC = () => {
               <div className="h-px flex-1 bg-slate-100"></div>
             </div>
 
-            <button onClick={handleGoogleLogin} disabled={isLoading} className="w-full flex items-center justify-center gap-3 bg-white border border-slate-200 py-3 rounded-2xl font-bold text-slate-700 hover:bg-slate-50 transition-all active:scale-[0.98] disabled:opacity-50">
+            <button onClick={handleGoogleLogin} disabled={isLoading} className="w-full flex items-center justify-center gap-3 bg-white border border-slate-200 py-3.5 rounded-2xl font-bold text-slate-700 hover:bg-slate-50 transition-all active:scale-[0.98] disabled:opacity-50">
               <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" className="w-5 h-5" alt="Google" />
               Continue with Google
             </button>
