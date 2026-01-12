@@ -49,6 +49,7 @@ export const loginWithGoogle = async () => {
     const result = await signInWithPopup(auth, provider);
     if (result.user) {
       const userRef = doc(db, "users", result.user.uid);
+      // Initialize or update user profile
       await setDoc(userRef, {
         username: result.user.displayName?.toLowerCase().replace(/\s/g, '') || result.user.uid,
         email: result.user.email,
@@ -59,7 +60,7 @@ export const loginWithGoogle = async () => {
       return result.user;
     }
   } catch (error: any) {
-    console.error("Google login error:", error.code, error.message);
+    console.error("Google Auth Error:", error.code, error.message);
     throw error;
   }
 };
@@ -100,7 +101,7 @@ export const signUpWithEmail = async (email: string, pass: string, fullName: str
       
       return result.user;
     }
-    throw new Error("Failed to create user account.");
+    throw new Error("Failed to create account.");
   } catch (error: any) {
     console.error("Signup error:", error.code, error.message);
     throw error;
@@ -109,26 +110,30 @@ export const signUpWithEmail = async (email: string, pass: string, fullName: str
 
 export const updateUserProfile = async (uid: string, data: { displayName?: string, username?: string, phoneNumber?: string }) => {
   const user = auth.currentUser;
-  if (!user) throw new Error("No authenticated session found. Please log in again.");
+  if (!user) throw new Error("Authentication lost. Please sign in again.");
 
   const userRef = doc(db, "users", uid);
-  const firestoreData: any = { ...data };
-  if (data.username) firestoreData.username = data.username.toLowerCase().replace(/\s/g, '');
+  const updatePayload: any = { ...data };
   
-  // CRITICAL FIX: Use setDoc with merge:true instead of updateDoc
-  // This prevents crashes if the document for some reason wasn't created during signup.
-  await setDoc(userRef, firestoreData, { merge: true });
-  
-  if (data.displayName) {
-    try {
-      await updateProfile(user, { displayName: data.displayName });
-    } catch (e) {
-      console.warn("Auth profile update failed, but Firestore was updated.");
-    }
+  // Sanitize username
+  if (data.username) {
+    updatePayload.username = data.username.toLowerCase().replace(/\s/g, '');
   }
   
-  await user.reload();
-  return auth.currentUser;
+  try {
+    // We use setDoc with merge: true to ensure it works even if the user doc was never created
+    await setDoc(userRef, updatePayload, { merge: true });
+    
+    if (data.displayName) {
+      await updateProfile(user, { displayName: data.displayName });
+    }
+    
+    await user.reload();
+    return auth.currentUser;
+  } catch (error: any) {
+    console.error("Profile Update Failure:", error);
+    throw new Error(error.message || "Database write failed. Check your connection.");
+  }
 };
 
 export const startChat = async (currentUid: string, targetUid: string) => {

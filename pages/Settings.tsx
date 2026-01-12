@@ -99,13 +99,12 @@ const Settings: React.FC = () => {
       
       setSaveStatus({ message: 'Profile updated successfully!', type: 'success' });
       setIsEditing(false);
-      addNotification('Profile Updated', 'Your identity and contact info have been saved.', 'success');
+      addNotification('Profile Updated', 'Success! Your profile data is safe.', 'success');
     } catch (error: any) {
       console.error("Profile update failed:", error);
-      setSaveStatus({ message: error.message || 'Failed to update profile. Please try again.', type: 'error' });
+      setSaveStatus({ message: error.message || 'Save failed. Check network.', type: 'error' });
     } finally {
       setIsSaving(false);
-      // Success message stays a bit longer, errors stay until manual close or timeout
       if (!saveStatus || saveStatus.type === 'success') {
         setTimeout(() => setSaveStatus(null), 3000);
       }
@@ -114,14 +113,15 @@ const Settings: React.FC = () => {
 
   return (
     <div className="max-w-4xl mx-auto pb-32 space-y-12 animate-fade-in">
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+      {/* Header Section */}
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 px-4">
         <div className="space-y-2">
           <div className="inline-flex px-4 py-1.5 bg-theme-light text-theme rounded-full text-xs font-black uppercase tracking-widest mb-2 transition-theme">Account Hub</div>
           <h2 className="text-5xl font-black text-slate-900 tracking-tighter">Profile Settings</h2>
         </div>
         
         {saveStatus && (
-          <div className={`flex items-center gap-3 px-6 py-4 rounded-2xl border animate-in slide-in-from-top-4 shadow-lg ${saveStatus.type === 'success' ? 'bg-emerald-50 border-emerald-100 text-emerald-700' : 'bg-rose-50 border-rose-100 text-rose-700'}`}>
+          <div className={`flex items-center gap-3 px-6 py-4 rounded-2xl border animate-in slide-in-from-top-4 shadow-xl ${saveStatus.type === 'success' ? 'bg-emerald-50 border-emerald-100 text-emerald-700' : 'bg-rose-50 border-rose-100 text-rose-700'}`}>
             {saveStatus.type === 'success' ? <CheckCircle2 size={18} /> : <AlertCircle size={18} />}
             <span className="font-bold text-sm">{saveStatus.message}</span>
             <button onClick={() => setSaveStatus(null)} className="ml-2 opacity-50 hover:opacity-100"><X size={14} /></button>
@@ -130,136 +130,123 @@ const Settings: React.FC = () => {
       </div>
 
       <div className="space-y-10">
-        {/* Main Form Container - Centered focus as per user request */}
-        <div className="bg-white rounded-[3.5rem] p-8 md:p-16 border border-slate-100 shadow-xl space-y-12 relative overflow-hidden transition-all duration-500">
-          <div className="flex flex-col md:flex-row items-center justify-center md:items-start gap-12 md:gap-20">
-            {/* Avatar Section */}
-            <div className="flex flex-col items-center gap-6">
-              <div className="w-40 h-40 rounded-[3.5rem] bg-theme-light border-4 border-white shadow-2xl flex items-center justify-center overflow-hidden shrink-0 relative transition-theme group hover:scale-[1.02] duration-500">
+        {/* Main Content Area - Visual Match for User Screenshot */}
+        <div className="bg-white rounded-[4rem] p-10 md:p-20 border border-slate-50 shadow-2xl space-y-16 relative overflow-hidden">
+          <div className="flex flex-col md:flex-row items-center justify-center md:items-center gap-16 md:gap-24">
+            
+            {/* Avatar Squircle with Soft Glow */}
+            <div className="relative group">
+              <div className="w-48 h-48 rounded-[3.5rem] bg-theme-light flex items-center justify-center overflow-hidden border-4 border-white shadow-[0_20px_60px_-15px_rgba(0,0,0,0.1)] transition-all duration-500 group-hover:scale-105">
                 {user?.photoURL ? (
-                  <img src={user.photoURL} alt="Me" className="w-full h-full object-cover" />
+                  <img src={user.photoURL} alt="Profile" className="w-full h-full object-cover" />
                 ) : (
-                  <UserIcon size={72} className="text-theme opacity-20" />
+                  <UserIcon size={80} className="text-theme opacity-20" />
                 )}
                 {isEditing && (
-                  <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
-                    <Edit3 size={24} className="text-white" />
+                  <div className="absolute inset-0 bg-slate-900/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-pointer">
+                    <Edit3 size={28} className="text-white" />
                   </div>
                 )}
               </div>
               {!isEditing && (
-                 <button 
+                <button 
                   onClick={() => setIsEditing(true)}
-                  className="inline-flex items-center gap-2 px-6 py-3 bg-slate-50 text-slate-500 rounded-full font-black text-[10px] uppercase tracking-widest hover:bg-theme-light hover:text-theme transition-all active:scale-95 shadow-sm"
+                  className="absolute -bottom-4 left-1/2 -translate-x-1/2 bg-white px-6 py-2.5 rounded-full shadow-xl border border-slate-100 text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-theme transition-all whitespace-nowrap"
                 >
-                  <Edit3 size={14} /> Edit Identity
+                  Edit Profile
                 </button>
               )}
             </div>
-            
-            {/* Fields Section */}
-            <div className="flex-1 w-full max-w-md space-y-8">
-              {isEditing ? (
-                <div className="space-y-6 animate-in fade-in duration-500">
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Full Name</label>
+
+            {/* Input Fields Area */}
+            <div className="flex-1 w-full max-w-lg space-y-10">
+              <div className="space-y-8">
+                {/* Full Name Field */}
+                <div className="space-y-3">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-2">Full Name</label>
+                  <input 
+                    readOnly={!isEditing}
+                    value={isEditing ? editData.displayName : (dbUser?.displayName || user?.displayName || '')}
+                    onChange={(e) => setEditData({...editData, displayName: e.target.value})}
+                    placeholder="Enter your full name"
+                    className={`w-full p-6 rounded-[1.5rem] text-lg font-bold text-slate-800 outline-none transition-all ${
+                      isEditing ? 'bg-slate-50 border border-slate-200 focus:bg-white focus:ring-4 ring-theme/10' : 'bg-slate-50/50 border-transparent cursor-default'
+                    }`}
+                  />
+                </div>
+
+                {/* Username Field */}
+                <div className="space-y-3">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-2">Unique Handle</label>
+                  <div className="relative">
+                    <div className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-400">
+                      <AtSign size={20} />
+                    </div>
                     <input 
-                      value={editData.displayName}
-                      onChange={(e) => setEditData({...editData, displayName: e.target.value})}
-                      className="w-full bg-slate-50 border border-slate-100 p-4 rounded-2xl font-bold text-slate-800 outline-none ring-theme focus:ring-4 transition-all"
-                      placeholder="Your name"
+                      readOnly={!isEditing}
+                      value={isEditing ? editData.username : (dbUser?.username || '')}
+                      onChange={(e) => setEditData({...editData, username: e.target.value})}
+                      placeholder="username"
+                      className={`w-full p-6 pl-14 rounded-[1.5rem] text-lg font-bold text-slate-800 outline-none transition-all ${
+                        isEditing ? 'bg-slate-50 border border-slate-200 focus:bg-white focus:ring-4 ring-theme/10' : 'bg-slate-50/50 border-transparent cursor-default'
+                      }`}
                     />
                   </div>
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Unique Handle</label>
-                    <div className="relative">
-                      <AtSign size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
-                      <input 
-                        value={editData.username}
-                        onChange={(e) => setEditData({...editData, username: e.target.value.toLowerCase().replace(/\s/g, '')})}
-                        className="w-full bg-slate-50 border border-slate-100 p-4 pl-12 rounded-2xl font-bold text-slate-800 outline-none ring-theme focus:ring-4 transition-all"
-                        placeholder="username"
-                      />
+                </div>
+
+                {/* Phone Number Field */}
+                <div className="space-y-3">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-2">Phone Number (Public Context)</label>
+                  <div className="relative">
+                    <div className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-400">
+                      <Phone size={20} />
                     </div>
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Phone Number (Public context)</label>
-                    <div className="relative">
-                      <Phone size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
-                      <input 
-                        type="tel"
-                        value={editData.phoneNumber}
-                        onChange={(e) => setEditData({...editData, phoneNumber: e.target.value})}
-                        className="w-full bg-slate-50 border border-slate-100 p-4 pl-12 rounded-2xl font-bold text-slate-800 outline-none ring-theme focus:ring-4 transition-all"
-                        placeholder="+1 234 567 890"
-                      />
-                    </div>
-                  </div>
-                  <div className="flex gap-4 pt-6">
-                    <button 
-                      onClick={handleSaveProfile}
-                      disabled={isSaving}
-                      className="flex-1 bg-theme text-white py-5 rounded-[2rem] font-black text-lg bg-theme-hover transition-all shadow-xl shadow-theme/20 active:scale-95 disabled:opacity-50 flex items-center justify-center gap-3"
-                    >
-                      {isSaving ? <Loader2 size={24} className="animate-spin" /> : <CheckCircle2 size={24} />}
-                      Save Changes
-                    </button>
-                    <button 
-                      onClick={() => setIsEditing(false)}
-                      disabled={isSaving}
-                      className="px-10 bg-slate-100 text-slate-500 py-5 rounded-[2rem] font-black text-lg hover:bg-slate-200 transition-all active:scale-95"
-                    >
-                      Cancel
-                    </button>
+                    <input 
+                      readOnly={!isEditing}
+                      value={isEditing ? editData.phoneNumber : (dbUser?.phoneNumber || '')}
+                      onChange={(e) => setEditData({...editData, phoneNumber: e.target.value})}
+                      placeholder="Not set"
+                      className={`w-full p-6 pl-14 rounded-[1.5rem] text-lg font-bold text-slate-800 outline-none transition-all ${
+                        isEditing ? 'bg-slate-50 border border-slate-200 focus:bg-white focus:ring-4 ring-theme/10' : 'bg-slate-50/50 border-transparent cursor-default'
+                      }`}
+                    />
                   </div>
                 </div>
-              ) : (
-                <div className="space-y-8 animate-in fade-in duration-500">
-                  <div className="space-y-1 text-center md:text-left">
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Connected As</p>
-                    <h3 className="text-4xl font-black text-slate-900 tracking-tight">@{dbUser?.username || 'user'}</h3>
-                  </div>
+              </div>
 
-                  <div className="grid grid-cols-1 gap-4">
-                    <div className="p-5 bg-slate-50 rounded-[2rem] flex items-center gap-4 border border-slate-100">
-                      <div className="p-3 bg-white rounded-xl shadow-sm text-theme"><UserIcon size={20} /></div>
-                      <div>
-                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Display Name</p>
-                        <p className="font-bold text-slate-800">{dbUser?.displayName || user?.displayName || 'Set your name'}</p>
-                      </div>
-                    </div>
-
-                    <div className="p-5 bg-slate-50 rounded-[2rem] flex items-center gap-4 border border-slate-100">
-                      <div className="p-3 bg-white rounded-xl shadow-sm text-theme"><Mail size={20} /></div>
-                      <div>
-                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Email Address</p>
-                        <p className="font-bold text-slate-800">{user?.email}</p>
-                      </div>
-                    </div>
-
-                    <div className="p-5 bg-slate-50 rounded-[2rem] flex items-center gap-4 border border-slate-100">
-                      <div className="p-3 bg-white rounded-xl shadow-sm text-theme"><Phone size={20} /></div>
-                      <div>
-                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Contact Number</p>
-                        <p className={`font-bold ${dbUser?.phoneNumber ? 'text-slate-800' : 'text-slate-300 italic'}`}>{dbUser?.phoneNumber || 'No number added'}</p>
-                      </div>
-                    </div>
-                  </div>
+              {/* Action Buttons Row */}
+              {isEditing && (
+                <div className="flex flex-col sm:flex-row gap-4 pt-6 animate-in slide-in-from-bottom-4 duration-500">
+                  <button 
+                    onClick={handleSaveProfile}
+                    disabled={isSaving}
+                    className="flex-[2] bg-theme text-white py-6 rounded-[1.5rem] font-black text-xl bg-theme-hover transition-all shadow-[0_20px_40px_-10px_rgba(var(--theme-color-rgb),0.3)] active:scale-95 disabled:opacity-50 flex items-center justify-center gap-3"
+                  >
+                    {isSaving ? <Loader2 size={24} className="animate-spin" /> : <Save size={24} />}
+                    {isSaving ? 'Updating...' : 'Save Changes'}
+                  </button>
+                  <button 
+                    onClick={() => setIsEditing(false)}
+                    disabled={isSaving}
+                    className="flex-1 bg-slate-100 text-slate-500 py-6 rounded-[1.5rem] font-black text-xl hover:bg-slate-200 transition-all active:scale-95"
+                  >
+                    Cancel
+                  </button>
                 </div>
               )}
             </div>
           </div>
         </div>
 
-        {/* Theme Picker Section */}
+        {/* Theme Personalization Section */}
         <div className="bg-white rounded-[3.5rem] p-10 md:p-14 border border-slate-100 shadow-sm space-y-10">
-          <div className="flex items-center gap-4">
-            <div className="p-4 bg-theme-light text-theme rounded-[2rem] transition-theme shadow-sm">
+          <div className="flex items-center gap-5">
+            <div className="p-4 bg-theme-light text-theme rounded-[2rem] transition-theme">
               <Palette size={28} />
             </div>
             <div>
-              <h3 className="text-3xl font-black text-slate-900 tracking-tight">Interface Theme</h3>
-              <p className="text-slate-500 font-medium">Customize the primary aesthetic color of your workspace.</p>
+              <h3 className="text-3xl font-black text-slate-900 tracking-tight">App Personalization</h3>
+              <p className="text-slate-500 font-medium">Choose a theme color that reflects your style.</p>
             </div>
           </div>
 
@@ -269,11 +256,11 @@ const Settings: React.FC = () => {
                 key={theme.color}
                 onClick={() => changeTheme(theme.color)}
                 className={`group relative flex flex-col items-center gap-3 p-3 rounded-[2.5rem] transition-all duration-300 ${
-                  currentTheme === theme.color ? 'bg-slate-50 ring-2 ring-slate-100 shadow-xl scale-105' : 'hover:bg-slate-50'
+                  currentTheme === theme.color ? 'bg-slate-50 ring-2 ring-slate-100 scale-105 shadow-xl' : 'hover:bg-slate-50'
                 }`}
               >
                 <div 
-                  className={`w-16 h-16 rounded-[2rem] shadow-lg transition-all duration-500 group-hover:rotate-12 flex items-center justify-center ${
+                  className={`w-16 h-16 rounded-[2rem] shadow-lg transition-all duration-500 flex items-center justify-center ${
                     currentTheme === theme.color ? 'scale-110' : ''
                   }`}
                   style={{ backgroundColor: theme.color }}
