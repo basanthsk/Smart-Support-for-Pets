@@ -32,12 +32,15 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
 
 // Extracted from system rules - mandatory checks for high-quality models
 // Define the shape of aistudio to match internal expectations
+interface AIStudio {
+  hasSelectedApiKey: () => Promise<boolean>;
+  openSelectKey: () => Promise<void>;
+}
+
 declare global {
   interface Window {
-    readonly aistudio: {
-      hasSelectedApiKey: () => Promise<boolean>;
-      openSelectKey: () => Promise<void>;
-    };
+    /* Fix: Removed readonly modifier to avoid declaration merging conflicts */
+    aistudio: AIStudio;
   }
 }
 
