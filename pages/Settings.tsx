@@ -9,8 +9,6 @@ import {
   CheckCircle2, 
   AlertCircle, 
   Trash2, 
-  Moon, 
-  Sun, 
   Shield, 
   Syringe,
   Weight,
@@ -21,25 +19,31 @@ import {
   Edit3,
   X,
   Save,
-  Loader2
+  Loader2,
+  AtSign
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useNotifications } from '../context/NotificationContext';
-import { logout, db, updateUsername } from '../services/firebase';
+import { logout, db, updateUserProfile } from '../services/firebase';
 import { useNavigate } from "react-router-dom";
 import { doc, getDoc } from "firebase/firestore";
 
 const Settings: React.FC = () => {
   const { user } = useAuth();
-  const { permissionStatus, addNotification, requestPermission } = useNotifications();
+  const { addNotification } = useNotifications();
   const navigate = useNavigate();
+  
   const [dbUser, setDbUser] = useState<any>(null);
   const [saveStatus, setSaveStatus] = useState<{ message: string, type: 'success' | 'error' } | null>(null);
-  const [isEditingUsername, setIsEditingUsername] = useState(false);
-  const [newUsername, setNewUsername] = useState('');
-  const [isSavingUsername, setIsSavingUsername] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   
-  const [darkMode, setDarkMode] = useState(() => localStorage.getItem('ssp_dark_mode') === 'true');
+  // Form State
+  const [editData, setEditData] = useState({
+    displayName: '',
+    username: ''
+  });
+  
   const [prefVaccines, setPrefVaccines] = useState(() => localStorage.getItem('ssp_pref_vaccines') !== 'false');
   const [prefWeight, setPrefWeight] = useState(() => localStorage.getItem('ssp_pref_weight') !== 'false');
 
@@ -51,7 +55,10 @@ const Settings: React.FC = () => {
         if (docSnap.exists()) {
           const data = docSnap.data();
           setDbUser(data);
-          setNewUsername(data.username || '');
+          setEditData({
+            displayName: data.displayName || user.displayName || '',
+            username: data.username || ''
+          });
         }
       }
     };
@@ -64,26 +71,35 @@ const Settings: React.FC = () => {
     localStorage.setItem(key, String(newVal));
   };
 
-  const handleUpdateUsername = async () => {
-    if (!user || !newUsername || newUsername === dbUser?.username) {
-      setIsEditingUsername(false);
-      return;
-    }
+  const handleSaveProfile = async () => {
+    if (!user) return;
     
-    setIsSavingUsername(true);
+    setIsSaving(true);
     setSaveStatus(null);
     
     try {
-      await updateUsername(user.uid, newUsername);
-      setDbUser((prev: any) => ({ ...prev, username: newUsername.toLowerCase() }));
-      setSaveStatus({ message: 'Username updated successfully!', type: 'success' });
-      setIsEditingUsername(false);
-      addNotification('Identity Updated', `Your username is now @${newUsername.toLowerCase()}`, 'success');
+      await updateUserProfile(user.uid, {
+        displayName: editData.displayName,
+        username: editData.username
+      });
+      
+      setDbUser((prev: any) => ({ 
+        ...prev, 
+        displayName: editData.displayName,
+        username: editData.username.toLowerCase() 
+      }));
+      
+      setSaveStatus({ message: 'Profile updated successfully!', type: 'success' });
+      setIsEditing(false);
+      addNotification('Profile Updated', 'Your identity has been saved across the platform.', 'success');
+      
+      // Refresh the page or wait for parent to re-render header? 
+      // Auth reload handled in service.
     } catch (error: any) {
-      setSaveStatus({ message: error.message || 'Failed to update username', type: 'error' });
+      setSaveStatus({ message: error.message || 'Failed to update profile', type: 'error' });
     } finally {
-      setIsSavingUsername(false);
-      setTimeout(() => setSaveStatus(null), 4000);
+      setIsSaving(false);
+      setTimeout(() => setSaveStatus(null), 5000);
     }
   };
 
@@ -92,7 +108,7 @@ const Settings: React.FC = () => {
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div className="space-y-2">
           <div className="inline-flex px-4 py-1.5 bg-indigo-50 text-indigo-700 rounded-full text-xs font-black uppercase tracking-widest mb-2">Settings</div>
-          <h2 className="text-5xl font-black text-slate-900 tracking-tighter">Account & Preferences</h2>
+          <h2 className="text-5xl font-black text-slate-900 tracking-tighter">Account & Identity</h2>
         </div>
         {saveStatus && (
           <div className={`flex items-center gap-3 px-6 py-4 rounded-2xl border animate-in slide-in-from-top-4 ${saveStatus.type === 'success' ? 'bg-emerald-50 border-emerald-100 text-emerald-700' : 'bg-rose-50 border-rose-100 text-rose-700'}`}>
@@ -104,9 +120,9 @@ const Settings: React.FC = () => {
 
       <div className="space-y-8">
         {/* Profile Card */}
-        <div className="bg-white rounded-[3.5rem] p-10 md:p-14 border border-slate-100 shadow-sm space-y-10">
+        <div className="bg-white rounded-[3.5rem] p-10 md:p-14 border border-slate-100 shadow-sm space-y-10 relative overflow-hidden">
           <div className="flex flex-col md:flex-row items-center gap-10">
-            <div className="w-32 h-32 rounded-[3rem] bg-indigo-50 border-4 border-white shadow-2xl flex items-center justify-center overflow-hidden shrink-0">
+            <div className="w-32 h-32 rounded-[3rem] bg-indigo-50 border-4 border-white shadow-2xl flex items-center justify-center overflow-hidden shrink-0 relative">
               {user?.photoURL ? (
                 <img src={user.photoURL} alt="Me" className="w-full h-full object-cover" />
               ) : (
@@ -115,59 +131,73 @@ const Settings: React.FC = () => {
             </div>
             
             <div className="flex-1 text-center md:text-left space-y-4">
-              <div className="space-y-1">
-                <div className="flex flex-col md:flex-row md:items-center gap-3">
-                  {isEditingUsername ? (
-                    <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 p-2 rounded-2xl w-full max-w-sm">
-                      <span className="text-slate-400 font-black pl-2">@</span>
+              {isEditing ? (
+                <div className="space-y-4 max-w-md">
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Full Name</label>
+                    <input 
+                      value={editData.displayName}
+                      onChange={(e) => setEditData({...editData, displayName: e.target.value})}
+                      className="w-full bg-slate-50 border border-slate-200 p-3 rounded-2xl font-bold text-slate-800 outline-none focus:ring-4 focus:ring-indigo-100 transition-all"
+                      placeholder="Your name"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Unique Handle</label>
+                    <div className="relative">
+                      <AtSign size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
                       <input 
-                        value={newUsername}
-                        onChange={(e) => setNewUsername(e.target.value.toLowerCase().replace(/\s/g, ''))}
-                        className="bg-transparent font-black text-2xl text-slate-800 outline-none w-full"
-                        autoFocus
-                        placeholder="newusername"
+                        value={editData.username}
+                        onChange={(e) => setEditData({...editData, username: e.target.value.toLowerCase().replace(/\s/g, '')})}
+                        className="w-full bg-slate-50 border border-slate-200 p-3 pl-10 rounded-2xl font-bold text-slate-800 outline-none focus:ring-4 focus:ring-indigo-100 transition-all"
+                        placeholder="username"
                       />
-                      <div className="flex gap-1">
-                        <button 
-                          onClick={handleUpdateUsername}
-                          disabled={isSavingUsername || !newUsername || newUsername === dbUser?.username}
-                          className="p-2 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-all disabled:opacity-50"
-                        >
-                          {isSavingUsername ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
-                        </button>
-                        <button 
-                          onClick={() => { setIsEditingUsername(false); setNewUsername(dbUser?.username || ''); }}
-                          className="p-2 bg-slate-200 text-slate-600 rounded-xl hover:bg-slate-300 transition-all"
-                        >
-                          <X size={18} />
-                        </button>
-                      </div>
                     </div>
-                  ) : (
-                    <div className="flex items-center justify-center md:justify-start gap-4 group">
-                      <h3 className="text-4xl font-black text-slate-800 tracking-tight">@{dbUser?.username || 'user'}</h3>
-                      <button 
-                        onClick={() => setIsEditingUsername(true)}
-                        className="p-2 text-slate-300 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all opacity-0 group-hover:opacity-100"
-                      >
-                        <Edit3 size={18} />
-                      </button>
-                    </div>
-                  )}
+                  </div>
+                  <div className="flex gap-3 pt-2">
+                    <button 
+                      onClick={handleSaveProfile}
+                      disabled={isSaving}
+                      className="flex-1 bg-indigo-600 text-white py-3 rounded-2xl font-black flex items-center justify-center gap-2 hover:bg-indigo-700 transition-all shadow-xl active:scale-95 disabled:opacity-50"
+                    >
+                      {isSaving ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
+                      Save Changes
+                    </button>
+                    <button 
+                      onClick={() => setIsEditing(false)}
+                      disabled={isSaving}
+                      className="px-6 bg-slate-100 text-slate-500 py-3 rounded-2xl font-black hover:bg-slate-200 transition-all active:scale-95"
+                    >
+                      Cancel
+                    </button>
+                  </div>
                 </div>
-                <p className="text-slate-400 font-bold text-lg">{user?.email}</p>
-              </div>
-              <div className="flex flex-wrap gap-2 justify-center md:justify-start">
-                 <span className="px-4 py-1.5 bg-indigo-50 text-indigo-700 rounded-full text-[10px] font-black uppercase tracking-widest">{user?.displayName}</span>
-                 <span className="px-4 py-1.5 bg-slate-100 text-slate-500 rounded-full text-[10px] font-black uppercase tracking-widest">Verified Account</span>
-              </div>
+              ) : (
+                <div className="space-y-2">
+                  <div className="flex flex-col md:flex-row md:items-center gap-3">
+                    <h3 className="text-4xl font-black text-slate-800 tracking-tight">@{dbUser?.username || 'user'}</h3>
+                    <span className="px-3 py-1 bg-indigo-50 text-indigo-600 rounded-full text-[10px] font-black uppercase tracking-widest">
+                      {dbUser?.displayName || user?.displayName}
+                    </span>
+                  </div>
+                  <p className="text-slate-400 font-bold text-lg">{user?.email}</p>
+                  <button 
+                    onClick={() => setIsEditing(true)}
+                    className="mt-4 inline-flex items-center gap-2 px-6 py-2.5 bg-slate-900 text-white rounded-xl font-black text-xs uppercase tracking-widest hover:bg-black transition-all active:scale-95 shadow-lg"
+                  >
+                    <Edit3 size={14} /> Edit Profile
+                  </button>
+                </div>
+              )}
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-6 border-t border-slate-50">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-10 border-t border-slate-50">
             <div className="p-8 bg-slate-50 rounded-[2.5rem] border border-slate-100">
-              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Display Name</p>
-              <p className="font-bold text-slate-800 text-lg">{user?.displayName}</p>
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Status</p>
+              <div className="flex items-center gap-2 text-emerald-600 font-bold">
+                <CheckCircle2 size={16} /> Verified Pet Parent
+              </div>
             </div>
             <button onClick={() => { logout(); navigate('/login'); }} className="w-full text-indigo-600 font-black flex items-center justify-center gap-4 px-8 py-5 bg-indigo-50 rounded-[2.5rem] hover:bg-indigo-100 transition-all border border-indigo-100 shadow-sm active:scale-95">
               <LogOut size={22} /> Sign Out Session
@@ -175,7 +205,7 @@ const Settings: React.FC = () => {
           </div>
         </div>
 
-        {/* Global Notifications Section */}
+        {/* Preferences Section */}
         <div className="bg-white rounded-[3.5rem] p-10 md:p-14 border border-slate-100 shadow-sm space-y-10">
           <div className="flex items-center gap-4">
             <div className="p-4 bg-indigo-50 rounded-3xl text-indigo-600">

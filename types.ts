@@ -41,8 +41,11 @@ export interface PetProfile {
   name: string;
   species: string;
   breed: string;
-  ageYears: string;
-  ageMonths: string;
+  birthday: string;
+  bio: string;
+  avatarUrl?: string;
+  ageYears?: string;
+  ageMonths?: string;
   healthNotes?: string;
   weightHistory: WeightRecord[];
   vaccinations: VaccinationRecord[];

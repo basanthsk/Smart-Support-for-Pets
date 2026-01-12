@@ -76,15 +76,34 @@ export const checkUsernameUnique = async (username: string, currentUid: string) 
   return querySnapshot.docs[0].id === currentUid;
 };
 
-export const updateUsername = async (uid: string, newUsername: string) => {
-  const isUnique = await checkUsernameUnique(newUsername, uid);
-  if (!isUnique) {
-    throw new Error("This username is already taken. Please try another one.");
+export const updateUserProfile = async (uid: string, data: { displayName?: string, username?: string }) => {
+  const user = auth.currentUser;
+  if (!user) throw new Error("No authenticated user found.");
+
+  // 1. If username is being changed, check uniqueness
+  if (data.username) {
+    const isUnique = await checkUsernameUnique(data.username, uid);
+    if (!isUnique) {
+      throw new Error("This username is already taken. Please try another one.");
+    }
   }
+
+  // 2. Update Firebase Auth (for the header/session)
+  if (data.displayName) {
+    await updateProfile(user, { displayName: data.displayName });
+  }
+
+  // 3. Update Firestore (for the database records)
   const userRef = doc(db, "users", uid);
-  await updateDoc(userRef, {
-    username: newUsername.toLowerCase()
-  });
+  const firestoreData: any = {};
+  if (data.displayName) firestoreData.displayName = data.displayName;
+  if (data.username) firestoreData.username = data.username.toLowerCase().replace(/\s/g, '');
+  
+  await updateDoc(userRef, firestoreData);
+  
+  // Force reload of user profile to sync the changes in current session
+  await user.reload();
+  return auth.currentUser;
 };
 
 export const signUpWithEmail = async (email: string, pass: string, displayName: string, username: string) => {
