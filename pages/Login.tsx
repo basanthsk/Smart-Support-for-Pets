@@ -1,11 +1,13 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Heart, Shield, Mail, Lock, User, MapPin, PawPrint, Loader2, ArrowRight, AlertCircle } from 'lucide-react';
 import { loginWithGoogle, loginWithIdentifier, signUpWithEmail } from '../services/firebase';
 import { useNavigate } from "react-router-dom";
+import { useAuth } from '../context/AuthContext';
 
 const Login: React.FC = () => {
   const navigate = useNavigate();
+  const { user, loading } = useAuth();
   const [isLogin, setIsLogin] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
@@ -20,6 +22,12 @@ const Login: React.FC = () => {
     petName: '',
     address: ''
   });
+
+  useEffect(() => {
+    if (!loading && user) {
+      navigate('/', { replace: true });
+    }
+  }, [user, loading, navigate]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
@@ -43,7 +51,7 @@ const Login: React.FC = () => {
     setError('');
     try {
       await loginWithGoogle();
-      navigate('/');
+      // Redirection is now handled by the useEffect hook
     } catch (err: any) {
       setError(formatFirebaseError(err));
     } finally {
@@ -62,13 +70,21 @@ const Login: React.FC = () => {
       } else {
         await signUpWithEmail(formData.identifier, formData.password, formData.fullName, formData.username);
       }
-      navigate('/');
+      // Redirection is now handled by the useEffect hook
     } catch (err: any) {
       setError(formatFirebaseError(err));
     } finally {
       setIsLoading(false);
     }
   };
+  
+  if (loading || user) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+        <Loader2 className="w-12 h-12 animate-spin text-indigo-600" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
@@ -80,7 +96,7 @@ const Login: React.FC = () => {
               <div className="bg-white p-2 rounded-2xl shadow-lg w-12 h-12 flex items-center justify-center overflow-hidden">
                 <img src={LOGO_URL} alt="Logo" className="w-10 h-10 object-contain" />
               </div>
-              <h1 className="text-xl font-bold tracking-tight">Smart Support for Pets</h1>
+              <h1 className="text-xl font-bold tracking-tight">SS Paw Pal</h1>
             </div>
             <h2 className="text-4xl font-extrabold leading-tight mb-6">
               {isLogin ? "Your pet's best life starts here." : "Join our community of pet lovers."}
@@ -153,7 +169,7 @@ const Login: React.FC = () => {
 
             <div className="mt-8 text-center">
               <p className="text-slate-500 text-sm font-medium">
-                {isLogin ? "New to Smart Support for Pets?" : "Already have an account?"}
+                {isLogin ? "New to SS Paw Pal?" : "Already have an account?"}
                 <button onClick={() => { setIsLogin(!isLogin); setError(''); }} className="ml-2 text-indigo-600 font-bold hover:underline">
                   {isLogin ? "Join Now" : "Sign In"}
                 </button>

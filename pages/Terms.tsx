@@ -28,7 +28,7 @@ const Terms: React.FC = () => {
               </div>
               <h1 className="text-4xl font-black tracking-tight leading-none">Terms & Conditions</h1>
             </div>
-            <p className="text-indigo-100 font-medium">SSP – Smart Support for Pets</p>
+            <p className="text-indigo-100 font-medium">SS Paw Pal</p>
             <p className="text-xs font-black uppercase tracking-widest opacity-60">Last Updated: {lastUpdated}</p>
           </div>
         </div>
@@ -37,7 +37,7 @@ const Terms: React.FC = () => {
         <div className="p-12 md:p-16 space-y-12">
           <section className="space-y-4">
             <p className="text-slate-600 font-medium leading-relaxed">
-              Welcome to SSP – Smart Support for Pets (“SSP”, “we”, “our”, “us”). By accessing or using this website, you agree to comply with and be bound by the following Terms and Conditions. If you do not agree, please do not use the website.
+              Welcome to SS Paw Pal (“SS Paw Pal”, “we”, “our”, “us”). By accessing or using this website, you agree to comply with and be bound by the following Terms and Conditions. If you do not agree, please do not use the website.
             </p>
           </section>
 
@@ -48,13 +48,13 @@ const Terms: React.FC = () => {
                 Purpose of the Platform
               </h2>
               <div className="pl-11 text-slate-600 space-y-3 font-medium">
-                <p>SSP is a web-based community platform designed to:</p>
+                <p>SS Paw Pal is a web-based community platform designed to:</p>
                 <ul className="list-disc pl-5 space-y-2">
                   <li>Allow pet owners to connect and share experiences</li>
                   <li>Provide general, AI-powered pet care guidance</li>
                   <li>Foster a supportive and educational environment for pet owners</li>
                 </ul>
-                <p className="font-bold text-indigo-600">SSP does not replace professional veterinary services.</p>
+                <p className="font-bold text-indigo-600">SS Paw Pal does not replace professional veterinary services.</p>
               </div>
             </section>
 
@@ -78,7 +78,7 @@ const Terms: React.FC = () => {
               <ul className="pl-11 text-slate-600 space-y-3 font-medium list-disc ml-5">
                 <li>Account creation requires a valid email address.</li>
                 <li>You are responsible for all activity under your account.</li>
-                <li>SSP reserves the right to suspend or terminate accounts that violate these terms.</li>
+                <li>SS Paw Pal reserves the right to suspend or terminate accounts that violate these terms.</li>
               </ul>
             </section>
 
@@ -94,7 +94,7 @@ const Terms: React.FC = () => {
                   <li>No abusive, harmful, or misleading content is allowed</li>
                   <li>You will not post false medical claims or dangerous advice</li>
                 </ul>
-                <p>SSP reserves the right to remove any content that violates these rules.</p>
+                <p>SS Paw Pal reserves the right to remove any content that violates these rules.</p>
               </div>
             </section>
 
@@ -104,7 +104,7 @@ const Terms: React.FC = () => {
                 AI-Powered Assistance Disclaimer
               </h2>
               <div className="text-amber-800/80 space-y-3 font-medium italic">
-                <p>The AI assistant provided by SSP:</p>
+                <p>The AI assistant provided by SS Paw Pal:</p>
                 <ul className="list-disc pl-5 space-y-2">
                   <li>Offers general pet care, nutrition, and training guidance</li>
                   <li>Does NOT provide medical diagnoses</li>
@@ -122,7 +122,7 @@ const Terms: React.FC = () => {
               <ul className="pl-11 text-slate-600 space-y-3 font-medium list-disc ml-5">
                 <li>User data is stored securely using Firebase services.</li>
                 <li>Pet profile data is used only to personalize user experience and AI responses.</li>
-                <li>SSP does not sell or misuse user data.</li>
+                <li>SS Paw Pal does not sell or misuse user data.</li>
               </ul>
             </section>
 
@@ -132,7 +132,7 @@ const Terms: React.FC = () => {
                 Limitation of Liability
               </h2>
               <p className="pl-11 text-slate-600 font-medium leading-relaxed">
-                SSP is not responsible for actions taken based on AI responses, user-generated content accuracy, or any loss or damage resulting from use of the platform. Use the platform at your own discretion.
+                SS Paw Pal is not responsible for actions taken based on AI responses, user-generated content accuracy, or any loss or damage resulting from use of the platform. Use the platform at your own discretion.
               </p>
             </section>
 
@@ -142,8 +142,8 @@ const Terms: React.FC = () => {
                 Intellectual Property
               </h2>
               <ul className="pl-11 text-slate-600 space-y-3 font-medium list-disc ml-5">
-                <li>All platform content, branding, and design belong to SSP.</li>
-                <li>Users retain ownership of the content they create but grant SSP permission to display it on the platform.</li>
+                <li>All platform content, branding, and design belong to SS Paw Pal.</li>
+                <li>Users retain ownership of the content they create but grant SS Paw Pal permission to display it on the platform.</li>
               </ul>
             </section>
 
@@ -153,8 +153,8 @@ const Terms: React.FC = () => {
                 Account Termination
               </h2>
               <ul className="pl-11 text-slate-600 space-y-3 font-medium list-disc ml-5">
-                <li>SSP reserves the right to suspend or terminate accounts that violate these terms.</li>
-                <li>SSP reserves the right to remove content without prior notice if necessary.</li>
+                <li>SS Paw Pal reserves the right to suspend or terminate accounts that violate these terms.</li>
+                <li>SS Paw Pal reserves the right to remove content without prior notice if necessary.</li>
               </ul>
             </section>
 
@@ -164,7 +164,7 @@ const Terms: React.FC = () => {
                 Changes to Terms
               </h2>
               <p className="pl-11 text-slate-600 font-medium leading-relaxed">
-                SSP may update these Terms and Conditions at any time. Continued use of the platform indicates acceptance of updated terms.
+                SS Paw Pal may update these Terms and Conditions at any time. Continued use of the platform indicates acceptance of updated terms.
               </p>
             </section>
           </div>
@@ -172,7 +172,7 @@ const Terms: React.FC = () => {
 
         {/* Footer */}
         <div className="p-12 border-t border-slate-50 bg-slate-50/50 text-center">
-          <p className="text-slate-400 font-bold text-sm">Smart Support for Pets © 2025</p>
+          <p className="text-slate-400 font-bold text-sm">SS Paw Pal © 2025</p>
         </div>
       </div>
     </div>

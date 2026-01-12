@@ -99,8 +99,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen, isCollapsed, setIs
             </div>
             {(!isCollapsed || isOpen) && (
               <div className="overflow-hidden animate-in fade-in slide-in-from-left-2">
-                <span className="font-black text-slate-900 whitespace-nowrap tracking-tighter text-lg leading-tight block">Smart Support</span>
-                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-theme">for pets</span>
+                <span className="font-black text-slate-900 whitespace-nowrap tracking-tighter text-xl leading-tight block">SS Paw Pal</span>
               </div>
             )}
           </Link>

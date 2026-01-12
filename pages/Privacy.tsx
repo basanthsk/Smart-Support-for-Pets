@@ -28,7 +28,7 @@ const Privacy: React.FC = () => {
               </div>
               <h1 className="text-4xl font-black tracking-tight leading-none">Privacy Policy</h1>
             </div>
-            <p className="text-emerald-50 font-medium">SSP – Smart Support for Pets</p>
+            <p className="text-emerald-50 font-medium">SS Paw Pal</p>
             <p className="text-xs font-black uppercase tracking-widest opacity-60">Last Updated: {lastUpdated}</p>
           </div>
         </div>
@@ -37,7 +37,7 @@ const Privacy: React.FC = () => {
         <div className="p-12 md:p-16 space-y-12">
           <section className="space-y-4">
             <p className="text-slate-600 font-medium leading-relaxed">
-              SSP – Smart Support for Pets (“SSP”, “we”, “our”, “us”) values your privacy. This Privacy Policy explains how we collect, use, store, and protect your information when you use our website. By using SSP, you agree to the practices described in this policy.
+              SS Paw Pal (“SS Paw Pal”, “we”, “our”, “us”) values your privacy. This Privacy Policy explains how we collect, use, store, and protect your information when you use our website. By using SS Paw Pal, you agree to the practices described in this policy.
             </p>
           </section>
 
@@ -136,7 +136,7 @@ const Privacy: React.FC = () => {
                 Cookies & Tracking
               </h2>
               <ul className="pl-11 text-slate-600 space-y-3 font-medium list-disc ml-5">
-                <li>SSP may use minimal cookies for authentication and session management</li>
+                <li>SS Paw Pal may use minimal cookies for authentication and session management</li>
                 <li>No third-party advertising cookies are used</li>
               </ul>
             </section>
@@ -147,7 +147,7 @@ const Privacy: React.FC = () => {
                 Children’s Privacy
               </h2>
               <p className="pl-11 text-slate-600 font-medium leading-relaxed">
-                SSP is intended for general use. If users are under the age of 13, parental guidance is recommended.
+                SS Paw Pal is intended for general use. If users are under the age of 13, parental guidance is recommended.
               </p>
             </section>
 
@@ -157,7 +157,7 @@ const Privacy: React.FC = () => {
                 Changes to This Privacy Policy
               </h2>
               <p className="pl-11 text-slate-600 font-medium leading-relaxed">
-                We may update this Privacy Policy occasionally. Any changes will be posted on this page with an updated date. Continued use of SSP indicates acceptance of the updated policy.
+                We may update this Privacy Policy occasionally. Any changes will be posted on this page with an updated date. Continued use of SS Paw Pal indicates acceptance of the updated policy.
               </p>
             </section>
           </div>
@@ -165,7 +165,7 @@ const Privacy: React.FC = () => {
 
         {/* Footer */}
         <div className="p-12 border-t border-slate-50 bg-slate-50/50 text-center">
-          <p className="text-slate-400 font-bold text-sm">Smart Support for Pets © 2025</p>
+          <p className="text-slate-400 font-bold text-sm">SS Paw Pal © 2025</p>
         </div>
       </div>
     </div>

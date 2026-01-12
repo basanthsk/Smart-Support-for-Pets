@@ -63,7 +63,7 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     if (path === AppRoutes.CHAT) return "Direct Messages";
     if (path === AppRoutes.PET_PROFILE) return "Pet Family";
     if (path === AppRoutes.SETTINGS) return "Account Hub";
-    return "Smart Support";
+    return "SS Paw Pal";
   };
 
   return (
@@ -193,7 +193,7 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
           
           <footer className="mt-20 py-10 border-t border-slate-100 text-center">
              <div className="flex items-center justify-center gap-2 text-slate-300 font-black text-[10px] uppercase tracking-[0.4em]">
-               <Dog size={12} /> Smart Support for Pets <Sparkles size={12} />
+               <Dog size={12} /> SS Paw Pal <Sparkles size={12} />
              </div>
              <p className="text-slate-400 font-bold text-[9px] mt-4 opacity-50 uppercase tracking-widest">Global Pet Care Network © 2025</p>
           </footer>

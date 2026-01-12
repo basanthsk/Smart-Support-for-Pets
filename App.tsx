@@ -148,7 +148,7 @@ const PetProfilePage: React.FC = () => {
 
   const generateQRCode = (petName: string) => {
     // Beautifully formatted QR Data for standard scanners
-    const qrData = `Smart Support for Pets\n------------------\nPet: ${petName}\nParent: ${user?.displayName || 'Pet Parent'}\nApp: SSP Pet Hub\nWeb: https://smartsupportforpets.vercel.app/`;
+    const qrData = `SS Paw Pal\n------------------\nPet: ${petName}\nParent: ${user?.displayName || 'Pet Parent'}\nApp: SS Paw Pal\nWeb: https://smartsupportforpets.vercel.app/`;
     return `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(qrData)}&color=4f46e5&bgcolor=ffffff`;
   };
 
@@ -350,7 +350,7 @@ const PetProfilePage: React.FC = () => {
               </div>
               <div className="space-y-4">
                 <h3 className="text-3xl font-black text-slate-900 tracking-tight">Scanner Active</h3>
-                <p className="text-slate-500 font-medium">Point your camera at an SSP QR code tag to identify a pet companion.</p>
+                <p className="text-slate-500 font-medium">Point your camera at an SS Paw Pal QR code tag to identify a pet companion.</p>
               </div>
               <div className="flex gap-4">
                 <button onClick={handleSimulateScan} className="flex-1 py-5 bg-theme text-white rounded-2xl font-black uppercase tracking-widest hover:bg-theme-hover transition-all">Simulate Scan</button>
@@ -364,7 +364,7 @@ const PetProfilePage: React.FC = () => {
                      {scanResult.avatarUrl ? <img src={scanResult.avatarUrl} className="w-full h-full object-cover" /> : <Dog size={80} className="m-10 opacity-30" />}
                   </div>
                   <div className="space-y-1">
-                    <p className="text-[10px] font-black uppercase tracking-[0.4em] opacity-60">Verified SSP Identity</p>
+                    <p className="text-[10px] font-black uppercase tracking-[0.4em] opacity-60">Verified SS Paw Pal Identity</p>
                     <h3 className="text-5xl font-black tracking-tighter">{scanResult.name}</h3>
                     <p className="text-lg font-bold opacity-80 uppercase tracking-widest">{scanResult.breed} • {scanResult.species}</p>
                   </div>
@@ -382,7 +382,7 @@ const PetProfilePage: React.FC = () => {
                   </div>
                   <div className="bg-indigo-50/50 p-8 rounded-[2.5rem] border border-theme/10 space-y-4">
                      <h4 className="text-[10px] font-black text-theme uppercase tracking-[0.2em] flex items-center gap-2"><Info size={14} /> Profile Description</h4>
-                     <p className="text-slate-600 font-medium italic leading-relaxed">"{scanResult.bio || 'This companion is a verified member of the Smart Support for Pets family.'}"</p>
+                     <p className="text-slate-600 font-medium italic leading-relaxed">"{scanResult.bio || 'This companion is a verified member of the SS Paw Pal family.'}"</p>
                   </div>
                   <div className="pt-4 flex flex-col gap-3">
                     <button onClick={() => { setScanResult(null); setIsScanning(false); }} className="w-full py-5 bg-slate-900 text-white rounded-[1.5rem] font-black text-lg shadow-xl shadow-slate-200">Done Viewing</button>
