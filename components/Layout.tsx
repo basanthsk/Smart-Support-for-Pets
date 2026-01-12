@@ -1,5 +1,4 @@
 
-import React, { useState, useRef, useEffect } from 'react';
 import { Menu, Bell, User as UserIcon, Trash2, CheckCircle2, AlertTriangle, Info, Search, Dog, Sparkles } from 'lucide-react';
 import Sidebar from './Sidebar';
 import { useAuth } from '../context/AuthContext';
@@ -67,8 +66,8 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   };
 
   return (
-    <div className="relative h-screen w-full bg-slate-50/40 overflow-hidden flex">
-      {/* Premium Sliding Sidebar */}
+    <div className="relative min-h-screen w-full bg-slate-50/40 overflow-x-hidden">
+      {/* Sidebar - Positioned to live within the 10% left margin on large screens */}
       <Sidebar 
         isOpen={isSidebarOpen} 
         setIsOpen={setIsSidebarOpen} 
@@ -76,8 +75,8 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         setIsCollapsed={setIsSidebarCollapsed}
       />
 
-      <div className="flex-1 flex flex-col min-w-0 transition-all duration-500 relative">
-        <header className="h-20 bg-white/60 backdrop-blur-xl border-b border-slate-200/40 flex items-center justify-between px-6 md:px-12 z-40 sticky top-0 shrink-0">
+      <div className="flex flex-col min-h-screen">
+        <header className="h-20 bg-white/80 backdrop-blur-md border-b border-slate-200/50 flex items-center justify-between px-6 md:px-12 z-40 sticky top-0">
           <div className="flex items-center gap-6">
             <button 
               onClick={() => setIsSidebarOpen(true)} 
@@ -104,7 +103,7 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
               <input 
                 type="text" 
                 placeholder="Search..." 
-                className="bg-slate-50/80 border border-slate-200/50 rounded-xl py-2 pl-10 pr-4 text-xs font-medium focus:bg-white focus:ring-4 focus:ring-theme/10 focus:border-theme/30 outline-none transition-all w-48"
+                className="bg-slate-50/50 border border-slate-200/50 rounded-xl py-2 pl-10 pr-4 text-xs font-medium focus:bg-white focus:ring-4 focus:ring-theme/10 focus:border-theme/30 outline-none transition-all w-48"
               />
             </div>
 
@@ -112,7 +111,7 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
               <div className="relative" ref={notifRef}>
                 <button 
                   onClick={() => setIsNotifOpen(!isNotifOpen)} 
-                  className={`p-2.5 rounded-xl transition-all relative ${isNotifOpen ? 'bg-theme text-white shadow-lg shadow-theme/25' : 'text-slate-500 hover:bg-theme/5 hover:text-theme'}`}
+                  className={`p-2.5 rounded-xl transition-all relative ${isNotifOpen ? 'bg-theme text-white shadow-lg' : 'text-slate-500 hover:bg-theme/5 hover:text-theme'}`}
                 >
                   <Bell size={18} />
                   {unreadCount > 0 && (
@@ -123,14 +122,14 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
                 </button>
 
                 {isNotifOpen && (
-                  <div className="absolute right-0 mt-4 w-72 md:w-80 bg-white/95 backdrop-blur-3xl rounded-[2.5rem] shadow-[0_30px_60px_-15px_rgba(0,0,0,0.15)] border border-slate-100 overflow-hidden z-[100] animate-in zoom-in-95 fade-in duration-300 origin-top-right">
+                  <div className="absolute right-0 mt-4 w-72 md:w-80 bg-white rounded-3xl shadow-2xl border border-slate-100 overflow-hidden z-[100] animate-in zoom-in-95 fade-in duration-300 origin-top-right">
                     <div className="p-5 bg-slate-50/50 border-b border-slate-100 flex items-center justify-between">
-                      <h4 className="text-[10px] font-black text-slate-800 tracking-widest uppercase">Notifications</h4>
-                      <button onClick={clearAll} className="p-2 text-slate-400 hover:text-rose-500 transition-all" title="Clear All"><Trash2 size={14} /></button>
+                      <h4 className="text-xs font-black text-slate-800 tracking-widest uppercase">Inbox</h4>
+                      <button onClick={clearAll} className="p-2 text-slate-400 hover:text-rose-500 transition-all"><Trash2 size={14} /></button>
                     </div>
                     <div className="max-h-80 overflow-y-auto custom-scrollbar">
                       {notifications.length === 0 ? (
-                        <div className="py-12 text-center text-slate-400 text-xs font-bold italic">Inbox empty</div>
+                        <div className="py-12 text-center text-slate-400 text-xs italic">No alerts</div>
                       ) : (
                         notifications.map(notif => <NotificationItem key={notif.id} notif={notif} onMarkRead={markAsRead} />)
                       )}
@@ -139,25 +138,26 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
                 )}
               </div>
               
-              <Link to={AppRoutes.SETTINGS} className="h-9 w-9 rounded-xl overflow-hidden border border-slate-200 shadow-sm flex items-center justify-center bg-white transition-transform hover:scale-105 active:scale-95">
+              <Link to={AppRoutes.SETTINGS} className="h-8 w-8 rounded-lg overflow-hidden border border-slate-200 shadow-sm flex items-center justify-center bg-white">
                 {user?.photoURL ? <img src={user.photoURL} alt="User" className="w-full h-full object-cover" /> : <UserIcon size={14} className="text-slate-300" />}
               </Link>
             </div>
           </div>
         </header>
 
-        {/* Scaled Content Area: 80% width centering logic */}
-        <main className="flex-1 overflow-y-auto scroll-smooth">
-          <div className="min-h-full flex flex-col items-center py-10 md:py-16">
-            <div className="w-full lg:w-[80vw] px-6 md:px-12 max-w-7xl animate-in fade-in slide-in-from-bottom-4 duration-700">
+        {/* Dynamic 80% Content Center Strategy */}
+        <main className="flex-1 w-full flex flex-col items-center overflow-y-auto">
+          {/* Main Wrapper: lg uses 80vw, centered via parent. md/sm uses 100% */}
+          <div className="w-full lg:w-[80vw] px-6 py-10 md:px-12 md:py-16 animate-in fade-in slide-in-from-bottom-4 duration-700 flex flex-col items-center">
+            <div className="w-full max-w-7xl">
               {children}
             </div>
             
-            <footer className="w-full lg:w-[80vw] px-6 md:px-12 mt-auto py-12 border-t border-slate-200/50 text-center">
-               <div className="flex items-center justify-center gap-2 text-slate-300 font-black text-[9px] uppercase tracking-[0.5em]">
+            <footer className="w-full mt-24 py-12 border-t border-slate-200/50 text-center">
+               <div className="flex items-center justify-center gap-2 text-slate-300 font-black text-[9px] uppercase tracking-[0.4em]">
                  <Dog size={12} /> Smart Support <Sparkles size={12} />
                </div>
-               <p className="text-slate-400 font-bold text-[8px] mt-3 opacity-50 uppercase tracking-[0.2em]">Global Pet Network Ecosystem © 2025</p>
+               <p className="text-slate-400 font-bold text-[8px] mt-2 opacity-50 uppercase tracking-widest">Global Pet Network © 2025</p>
             </footer>
           </div>
         </main>
