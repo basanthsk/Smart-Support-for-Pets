@@ -13,6 +13,7 @@ import Privacy from './pages/Privacy';
 import Chat from './pages/Chat';
 import FindFriends from './pages/FindFriends';
 import PetProfilePage from './pages/PetProfile';
+import HealthCheckup from './pages/HealthCheckup'; // Import the new page
 import { AppRoutes } from './types';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { NotificationProvider } from './context/NotificationContext';
@@ -53,6 +54,7 @@ const AppContent: React.FC = () => {
       <Route path={AppRoutes.FIND_FRIENDS} element={<ProtectedRoute><FindFriends /></ProtectedRoute>} />
       <Route path={AppRoutes.TERMS} element={<ProtectedRoute><Terms /></ProtectedRoute>} />
       <Route path={AppRoutes.PRIVACY} element={<ProtectedRoute><Privacy /></ProtectedRoute>} />
+      <Route path={AppRoutes.HEALTH_CHECKUP} element={<ProtectedRoute><HealthCheckup /></ProtectedRoute>} /> {/* Add the new route */}
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );

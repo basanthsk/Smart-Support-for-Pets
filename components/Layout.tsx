@@ -63,6 +63,7 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     if (path === AppRoutes.CHAT) return "💬 Chat Box";
     if (path === AppRoutes.PET_PROFILE) return "🐕 My Pet";
     if (path === AppRoutes.SETTINGS) return "⚙️ Settings";
+    if (path === AppRoutes.HEALTH_CHECKUP) return "🏥 Vet Help"; // Add this line
     return "SS Paw Pal";
   };
 
