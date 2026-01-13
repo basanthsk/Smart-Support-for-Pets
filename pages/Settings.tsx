@@ -11,12 +11,24 @@ import {
   AtSign, 
   Phone, 
   Palette,
-  Plus
+  Plus,
+  Dog,
+  Shield,
+  Bot,
+  Bell,
+  FileText,
+  Lock,
+  LogOut,
+  Trash2,
+  Sparkles
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useNotifications } from '../context/NotificationContext';
-import { db, updateUserProfile } from '../services/firebase';
+import { db, updateUserProfile, logout } from '../services/firebase';
 import { doc, getDoc } from "firebase/firestore";
+import { PetProfile } from '../types';
+import { useNavigate, Link } from "react-router-dom";
+import { AppRoutes } from '../types';
 
 const THEME_PRESETS = [
   { name: 'Indigo', color: '#4f46e5' },
@@ -24,270 +36,220 @@ const THEME_PRESETS = [
   { name: 'Emerald', color: '#10b981' },
   { name: 'Amber', color: '#f59e0b' },
   { name: 'Violet', color: '#7c3aed' },
-  { name: 'Sky', color: '#0ea5e9' },
-  { name: 'Midnight', color: '#0f172a' },
 ];
 
 const Settings: React.FC = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const { addNotification } = useNotifications();
   
-  const [dbUser, setDbUser] = useState<any>(null);
-  const [saveStatus, setSaveStatus] = useState<{ message: string, type: 'success' | 'error' } | null>(null);
-  const [isEditing, setIsEditing] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
-  const [currentTheme, setCurrentTheme] = useState(() => localStorage.getItem('ssp_theme_color') || '#4f46e5');
-  
-  const [editData, setEditData] = useState({
-    displayName: user?.displayName || '',
-    username: '',
-    phoneNumber: ''
-  });
+  // State for different settings sections
+  const [accountData, setAccountData] = useState({ displayName: '', username: '', phoneNumber: '' });
+  const [petData, setPetData] = useState<Partial<PetProfile>>({ name: '', species: 'Dog', birthday: '', bio: '' });
+  const [appPrefs, setAppPrefs] = useState({ notifications: true });
+  const [aiPrefs, setAiPrefs] = useState({ enabled: true });
 
+  // UI State
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveStatus, setSaveStatus] = useState<{ message: string, type: 'success' | 'error' } | null>(null);
+  
+  // Load all settings from various sources on mount
   useEffect(() => {
-    const fetchUserData = async () => {
+    const loadSettings = async () => {
       if (user) {
-        try {
-          const docRef = doc(db, "users", user.uid);
-          const docSnap = await getDoc(docRef);
-          if (docSnap.exists()) {
-            const data = docSnap.data();
-            setDbUser(data);
-            setEditData({
-              displayName: data.displayName || user.displayName || '',
-              username: data.username || '',
-              phoneNumber: data.phoneNumber || ''
-            });
-          }
-        } catch (e) {
-          console.error("Error fetching user settings:", e);
+        // Load user profile from Firestore
+        const docRef = doc(db, "users", user.uid);
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+          const data = docSnap.data();
+          setAccountData({
+            displayName: data.displayName || user.displayName || '',
+            username: data.username || '',
+            phoneNumber: data.phoneNumber || ''
+          });
         }
+
+        // Load pet profile from localStorage
+        const savedPets = localStorage.getItem(`ssp_pets_${user.uid}`);
+        if (savedPets) {
+          const pets: PetProfile[] = JSON.parse(savedPets);
+          if (pets.length > 0) setPetData(pets[0]);
+        }
+
+        // Load app/AI prefs from localStorage
+        const savedAppPrefs = localStorage.getItem(`ssp_app_prefs_${user.uid}`);
+        if (savedAppPrefs) setAppPrefs(JSON.parse(savedAppPrefs));
+        
+        const savedAiPrefs = localStorage.getItem(`ssp_ai_prefs_${user.uid}`);
+        if (savedAiPrefs) setAiPrefs(JSON.parse(savedAiPrefs));
       }
     };
-    fetchUserData();
+    loadSettings();
   }, [user]);
 
-  const changeTheme = (color: string) => {
-    setCurrentTheme(color);
-    localStorage.setItem('ssp_theme_color', color);
-    addNotification('Theme Updated', 'Your visual preferences have been applied.', 'success');
-  };
-
-  const handleSaveProfile = async () => {
+  const handleSaveAccount = async () => {
     if (!user) return;
-    
     setIsSaving(true);
     setSaveStatus(null);
-    
     try {
-      await updateUserProfile(user.uid, {
-        displayName: editData.displayName,
-        username: editData.username,
-        phoneNumber: editData.phoneNumber
-      });
-      
-      setDbUser((prev: any) => ({ 
-        ...prev, 
-        displayName: editData.displayName,
-        username: editData.username.toLowerCase(),
-        phoneNumber: editData.phoneNumber
-      }));
-      
-      setSaveStatus({ message: 'Profile updated successfully!', type: 'success' });
-      setIsEditing(false);
-      addNotification('Profile Updated', 'Identity synced successfully.', 'success');
+      await updateUserProfile(user.uid, accountData);
+      setSaveStatus({ message: 'Account saved! 🎉', type: 'success' });
+      addNotification('Profile Updated', 'Your account details are fresh!', 'success');
     } catch (error: any) {
-      console.error("Profile update failed:", error);
-      // Enhanced error handling for unique username
-      const msg = error.message?.includes("taken") ? "That username is already taken. Please try another." : (error.message || 'Update failed.');
+      const msg = error.message?.includes("taken") ? "That username is already taken." : "Update failed.";
       setSaveStatus({ message: msg, type: 'error' });
     } finally {
       setIsSaving(false);
-      if (!saveStatus || saveStatus.type === 'success') {
-        setTimeout(() => setSaveStatus(null), 5000);
-      }
     }
   };
 
+  const handleSavePet = () => {
+    if (!user) return;
+    setIsSaving(true);
+    // In a real app, you'd find the specific pet and update it. Here we assume one pet.
+    const savedPets = localStorage.getItem(`ssp_pets_${user.uid}`);
+    let pets: PetProfile[] = savedPets ? JSON.parse(savedPets) : [];
+    if (pets.length > 0) {
+      pets[0] = { ...pets[0], ...petData };
+    } else {
+      // This case should ideally not happen from settings, but as a fallback:
+      pets.push({ id: crypto.randomUUID(), ...petData } as PetProfile);
+    }
+    localStorage.setItem(`ssp_pets_${user.uid}`, JSON.stringify(pets));
+    addNotification('Pet Profile Saved!', `${petData.name}'s info is updated.`, 'success');
+    setTimeout(() => setIsSaving(false), 1000);
+  };
+
+  const handleToggle = (pref: 'notifications' | 'ai') => {
+    if(!user) return;
+    if (pref === 'notifications') {
+        const newPrefs = { ...appPrefs, notifications: !appPrefs.notifications };
+        setAppPrefs(newPrefs);
+        localStorage.setItem(`ssp_app_prefs_${user.uid}`, JSON.stringify(newPrefs));
+    } else {
+        const newPrefs = { ...aiPrefs, enabled: !aiPrefs.enabled };
+        setAiPrefs(newPrefs);
+        localStorage.setItem(`ssp_ai_prefs_${user.uid}`, JSON.stringify(newPrefs));
+    }
+  };
+
+  const handleLogout = async () => {
+    if(confirm("Are you SURE you want to logout?! 😭")) {
+        await logout();
+        navigate('/login', { replace: true });
+    }
+  };
+
+  const inputStyles = "w-full p-4 border-4 border-black rounded-2xl text-lg font-bold bg-slate-50 focus:bg-white transition-all";
+
   return (
-    <div className="max-w-4xl mx-auto pb-32 space-y-12 animate-fade-in">
-      {/* Header Section */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 px-4">
-        <div className="space-y-2">
-          <div className="inline-flex px-4 py-1.5 bg-theme-light text-theme rounded-full text-xs font-black uppercase tracking-widest mb-2 transition-theme">Account Hub</div>
-          <h2 className="text-5xl font-black text-slate-900 tracking-tighter">Profile Settings</h2>
-        </div>
-        
-        {saveStatus && (
-          <div className={`flex items-center gap-3 px-6 py-4 rounded-2xl border animate-in slide-in-from-top-4 shadow-xl ${saveStatus.type === 'success' ? 'bg-emerald-50 border-emerald-100 text-emerald-700' : 'bg-rose-50 border-rose-100 text-rose-700'}`}>
-            {saveStatus.type === 'success' ? <CheckCircle2 size={18} /> : <AlertCircle size={18} />}
-            <span className="font-bold text-sm">{saveStatus.message}</span>
-            <button onClick={() => setSaveStatus(null)} className="ml-2 opacity-50 hover:opacity-100"><X size={14} /></button>
-          </div>
-        )}
+    <div className="max-w-4xl mx-auto pb-32 space-y-12 animate-in fade-in">
+      <div className="rotate-[-1deg] sticker-card bg-white p-6 border-4 border-black inline-block">
+        <h2 className="text-5xl font-black text-black tracking-tight">⚙️ MY SETTINGS</h2>
+        <p className="text-xl font-bold text-purple-600">All my important stuff in one place!</p>
       </div>
 
       <div className="space-y-10">
-        <div className="bg-white rounded-[4rem] p-10 md:p-20 border border-slate-50 shadow-2xl space-y-16 relative overflow-hidden transition-all duration-700">
-          <div className="flex flex-col lg:flex-row items-center justify-center lg:items-start gap-16 lg:gap-24">
-            
-            {/* Avatar Area */}
-            <div className="relative group shrink-0">
-              <div className="w-56 h-56 rounded-[3.5rem] bg-theme-light flex flex-col items-center justify-center overflow-hidden border-4 border-white shadow-[0_20px_60px_-15px_rgba(0,0,0,0.1)] transition-all duration-500 group-hover:scale-105">
-                {user?.photoURL ? (
-                  <img src={user.photoURL} alt="Profile" className="w-full h-full object-cover" />
-                ) : (
-                  <UserIcon size={96} className="text-theme opacity-20" />
-                )}
-                <div className="mt-2 text-center">
-                  <p className="text-[10px] font-black uppercase tracking-[0.2em] text-theme/60">@{dbUser?.username || 'user'}</p>
-                </div>
-                {isEditing && (
-                  <div className="absolute inset-0 bg-slate-900/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-pointer">
-                    <Edit3 size={32} className="text-white" />
-                  </div>
-                )}
-              </div>
-              {!isEditing && (
-                <button 
-                  onClick={() => setIsEditing(true)}
-                  className="absolute -bottom-4 left-1/2 -translate-x-1/2 bg-white px-8 py-3 rounded-full shadow-xl border border-slate-100 text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-theme transition-all whitespace-nowrap active:scale-95"
-                >
-                  Edit Profile
-                </button>
-              )}
+        
+        {/* 1. Account Settings */}
+        <div className="sticker-card bg-white p-10 border-4 border-black space-y-6">
+          <h3 className="text-2xl font-black flex items-center gap-3"><UserIcon className="text-blue-500" /> My Super Account</h3>
+          <div className="grid md:grid-cols-2 gap-6">
+            <div className="space-y-2">
+              <label className="font-black uppercase text-sm">Full Name:</label>
+              <input value={accountData.displayName} onChange={e => setAccountData({...accountData, displayName: e.target.value})} className={inputStyles} />
             </div>
-
-            {/* Fields Area */}
-            <div className="flex-1 w-full max-w-xl space-y-12">
-              <div className="space-y-10">
-                {/* Full Name */}
-                <div className="space-y-3">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-2">Full Name</label>
-                  <input 
-                    readOnly={!isEditing}
-                    value={isEditing ? editData.displayName : (dbUser?.displayName || user?.displayName || '')}
-                    onChange={(e) => setEditData({...editData, displayName: e.target.value})}
-                    placeholder="e.g. Sadanand Jyoti"
-                    className={`w-full p-6 rounded-[1.5rem] text-lg font-bold text-slate-800 outline-none transition-all ${
-                      isEditing ? 'bg-slate-50 border border-slate-200 focus:bg-white focus:ring-4 ring-theme/10' : 'bg-slate-50/50 border-transparent cursor-default'
-                    }`}
-                  />
-                </div>
-
-                {/* Unique Handle (Editable) */}
-                <div className="space-y-3">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-2">Unique Handle</label>
-                  <div className="relative">
-                    <div className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-400">
-                      <AtSign size={20} />
-                    </div>
-                    <input 
-                      readOnly={!isEditing}
-                      value={isEditing ? editData.username : (dbUser?.username || '')}
-                      onChange={(e) => setEditData({...editData, username: e.target.value.toLowerCase().replace(/\s/g, '')})}
-                      placeholder="username"
-                      className={`w-full p-6 pl-14 rounded-[1.5rem] text-lg font-bold text-slate-800 outline-none transition-all ${
-                        isEditing ? 'bg-slate-50 border border-slate-200 focus:bg-white focus:ring-4 ring-theme/10' : 'bg-slate-50/50 border-transparent cursor-default'
-                      }`}
-                    />
-                  </div>
-                </div>
-
-                {/* Phone Number - Enhanced Placeholder & Handling */}
-                <div className="space-y-3">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-2">Phone Number</label>
-                  <div className="relative">
-                    <div className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-400">
-                      <Phone size={20} />
-                    </div>
-                    <input 
-                      readOnly={!isEditing}
-                      value={isEditing ? editData.phoneNumber : (dbUser?.phoneNumber || '')}
-                      onChange={(e) => setEditData({...editData, phoneNumber: e.target.value})}
-                      placeholder="e.g. +91 9876543210"
-                      className={`w-full p-6 pl-14 rounded-[1.5rem] text-lg font-bold text-slate-800 outline-none transition-all ${
-                        isEditing ? 'bg-slate-50 border border-slate-200 focus:bg-white focus:ring-4 ring-theme/10' : 'bg-slate-50/50 border-transparent cursor-default'
-                      }`}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Capsule Action Buttons */}
-              {isEditing && (
-                <div className="flex flex-col sm:flex-row gap-4 pt-4 animate-in slide-in-from-bottom-4 duration-500">
-                  <button 
-                    onClick={handleSaveProfile}
-                    disabled={isSaving}
-                    className="flex-[2] bg-theme text-white py-6 rounded-full font-black text-xl bg-theme-hover transition-all shadow-[0_20px_40px_-10px_rgba(79,70,229,0.3)] active:scale-95 disabled:opacity-50 flex items-center justify-center gap-3"
-                  >
-                    {isSaving ? <Loader2 size={24} className="animate-spin" /> : <Save size={24} />}
-                    {isSaving ? 'Saving...' : 'Save Changes'}
-                  </button>
-                  <button 
-                    onClick={() => setIsEditing(false)}
-                    disabled={isSaving}
-                    className="flex-1 bg-slate-100 text-slate-500 py-6 rounded-full font-black text-xl hover:bg-slate-200 transition-all active:scale-95"
-                  >
-                    Cancel
-                  </button>
-                </div>
-              )}
+            <div className="space-y-2">
+              <label className="font-black uppercase text-sm">Username:</label>
+              <input value={accountData.username} onChange={e => setAccountData({...accountData, username: e.target.value})} className={inputStyles} />
             </div>
+          </div>
+          <button onClick={handleSaveAccount} disabled={isSaving} className="fun-button bg-blue-500 text-white w-full py-4 text-xl rounded-2xl">
+            {isSaving ? <Loader2 className="animate-spin mx-auto"/> : 'Save My Account Info'}
+          </button>
+          <div className="grid md:grid-cols-3 gap-4 pt-4">
+             <button className="fun-button bg-white text-black py-3 rounded-xl text-sm">🔐 Change Password</button>
+             <button onClick={handleLogout} className="fun-button bg-white text-orange-500 py-3 rounded-xl text-sm">🚪 Logout</button>
+             <button className="fun-button bg-red-100 text-red-500 py-3 rounded-xl text-sm">❌ Delete Account</button>
           </div>
         </div>
-
-        {/* Theme Picker */}
-        <div className="bg-white rounded-[3.5rem] p-10 md:p-14 border border-slate-100 shadow-sm space-y-10">
-          <div className="flex items-center gap-5">
-            <div className="p-4 bg-theme-light text-theme rounded-[2rem] transition-theme shadow-sm">
-              <Palette size={28} />
+        
+        {/* 2. Pet Profile Settings */}
+        <div className="sticker-card bg-white p-10 border-4 border-black space-y-6">
+          <h3 className="text-2xl font-black flex items-center gap-3"><Dog className="text-orange-500" /> My Pet's Deets!</h3>
+           <div className="grid md:grid-cols-2 gap-6">
+            <div className="space-y-2">
+              <label className="font-black uppercase text-sm">Pet's Name:</label>
+              <input value={petData.name} onChange={e => setPetData({...petData, name: e.target.value})} className={inputStyles} />
             </div>
-            <div>
-              <h3 className="text-3xl font-black text-slate-900 tracking-tight">App Personalization</h3>
-              <p className="text-slate-500 font-medium">Customize your primary workspace theme.</p>
+             <div className="space-y-2">
+              <label className="font-black uppercase text-sm">Species:</label>
+              <select value={petData.species} onChange={e => setPetData({...petData, species: e.target.value})} className={inputStyles}>
+                <option>Dog 🐕</option><option>Cat 🐈</option><option>Rabbit 🐰</option>
+              </select>
+            </div>
+             <div className="space-y-2">
+              <label className="font-black uppercase text-sm">Birthday:</label>
+              <input type="date" value={petData.birthday} onChange={e => setPetData({...petData, birthday: e.target.value})} className={inputStyles} />
+            </div>
+            <div className="space-y-2">
+              <label className="font-black uppercase text-sm">Breed:</label>
+              <input value={petData.breed} onChange={e => setPetData({...petData, breed: e.target.value})} className={inputStyles} />
             </div>
           </div>
+          <div className="space-y-2">
+            <label className="font-black uppercase text-sm">Health Notes / Bio:</label>
+            <textarea value={petData.bio} onChange={e => setPetData({...petData, bio: e.target.value})} className={`${inputStyles} h-24`}></textarea>
+          </div>
+          <button onClick={handleSavePet} disabled={isSaving} className="fun-button bg-orange-500 text-white w-full py-4 text-xl rounded-2xl">
+            {isSaving ? 'Saving...' : 'Save Pet Deets'}
+          </button>
+        </div>
+        
+        {/* 3. AI Preferences */}
+        <div className="sticker-card bg-white p-10 border-4 border-black space-y-6">
+          <h3 className="text-2xl font-black flex items-center gap-3"><Bot className="text-purple-500" /> Magic AI Brain</h3>
+          <div className="flex justify-between items-center bg-slate-50 p-4 border-2 border-black rounded-2xl">
+            <span className="font-bold">Enable AI Assistant</span>
+            <button onClick={() => handleToggle('ai')} className={`w-16 h-8 rounded-full border-2 border-black flex items-center p-1 transition-colors ${aiPrefs.enabled ? 'bg-green-400' : 'bg-slate-200'}`}>
+                <div className={`w-6 h-6 bg-white rounded-full border-2 border-black shadow-md transform transition-transform ${aiPrefs.enabled ? 'translate-x-8' : 'translate-x-0'}`}></div>
+            </button>
+          </div>
+          <button className="fun-button bg-white text-black w-full py-4 text-lg rounded-2xl">🗑️ Clear AI Chat History</button>
+          <p className="text-center text-xs font-bold text-slate-400 p-4 bg-slate-50 rounded-lg italic">
+            AI provides general guidance only and does not replace professional veterinary advice.
+          </p>
+        </div>
 
-          <div className="flex flex-wrap gap-6 justify-center md:justify-start">
-            {THEME_PRESETS.map((theme) => (
-              <button
-                key={theme.color}
-                onClick={() => changeTheme(theme.color)}
-                className={`group relative flex flex-col items-center gap-3 p-3 rounded-[2.5rem] transition-all duration-300 ${
-                  currentTheme === theme.color ? 'bg-slate-50 ring-2 ring-slate-100 scale-105 shadow-xl' : 'hover:bg-slate-50'
-                }`}
-              >
-                <div 
-                  className={`w-16 h-16 rounded-[2rem] shadow-lg transition-all duration-500 flex items-center justify-center ${
-                    currentTheme === theme.color ? 'scale-110' : ''
-                  }`}
-                  style={{ backgroundColor: theme.color }}
-                >
-                  {currentTheme === theme.color && <CheckCircle2 size={32} className="text-white animate-in zoom-in" />}
-                </div>
-                <span className={`text-[10px] font-black uppercase tracking-widest ${
-                  currentTheme === theme.color ? 'text-theme' : 'text-slate-400'
-                }`}>
-                  {theme.name}
-                </span>
+        {/* 4. App Preferences */}
+        <div className="sticker-card bg-white p-10 border-4 border-black space-y-6">
+          <h3 className="text-2xl font-black flex items-center gap-3"><Sparkles className="text-yellow-500" /> App Style & Stuff</h3>
+          <div className="flex justify-between items-center bg-slate-50 p-4 border-2 border-black rounded-2xl">
+            <span className="font-bold">Enable Notifications</span>
+            <button onClick={() => handleToggle('notifications')} className={`w-16 h-8 rounded-full border-2 border-black flex items-center p-1 transition-colors ${appPrefs.notifications ? 'bg-green-400' : 'bg-slate-200'}`}>
+                <div className={`w-6 h-6 bg-white rounded-full border-2 border-black shadow-md transform transition-transform ${appPrefs.notifications ? 'translate-x-8' : 'translate-x-0'}`}></div>
+            </button>
+          </div>
+          <div className="flex flex-wrap gap-4 justify-center pt-4">
+             {THEME_PRESETS.map((theme) => (
+              <button key={theme.color} className="flex flex-col items-center gap-2">
+                <div style={{ backgroundColor: theme.color }} className="w-12 h-12 rounded-full border-2 border-black"></div>
+                <span className="text-xs font-black">{theme.name}</span>
               </button>
             ))}
-            
-            <label className="group relative flex flex-col items-center gap-3 p-3 rounded-[2.5rem] hover:bg-slate-50 cursor-pointer transition-all">
-              <div className="w-16 h-16 rounded-[2rem] shadow-lg bg-gradient-to-tr from-rose-500 via-indigo-500 to-emerald-500 flex items-center justify-center transition-all group-hover:rotate-12">
-                <Plus size={32} className="text-white" />
-              </div>
-              <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Custom</span>
-              <input 
-                type="color" 
-                className="absolute inset-0 opacity-0 cursor-pointer"
-                onChange={(e) => changeTheme(e.target.value)}
-              />
-            </label>
           </div>
         </div>
+
+        {/* 5. Legal & Info */}
+        <div className="sticker-card bg-white p-10 border-4 border-black space-y-4">
+          <h3 className="text-2xl font-black flex items-center gap-3"><FileText className="text-slate-500" /> Boring Legal Info</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Link to={AppRoutes.TERMS} className="fun-button bg-white text-black py-4 text-center rounded-xl">Terms & Conditions</Link>
+              <Link to={AppRoutes.PRIVACY} className="fun-button bg-white text-black py-4 text-center rounded-xl">Privacy Policy</Link>
+              <div className="fun-button bg-slate-100 text-black py-4 text-center rounded-xl col-span-1 md:col-span-2">ℹ️ About SS Paw Pal</div>
+          </div>
+        </div>
+
       </div>
     </div>
   );
