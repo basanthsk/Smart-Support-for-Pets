@@ -130,18 +130,22 @@ const PublicPetProfile: React.FC = () => {
       
       try {
         setLoading(true);
-        let data: any = null;
+        let petData: any = null;
         const trimmedId = petId.trim();
 
-        // If it starts with SSP or doesn't have a hyphen, it's a shortId.
-        if (trimmedId.toUpperCase().startsWith('SSP-') || !trimmedId.includes('-')) {
-            data = await getPetByShortId(trimmedId);
-        } else { // Otherwise, assume it's a full UUID.
-            data = await getPetById(trimmedId);
-        }
+        const isUUID = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(trimmedId);
 
-        if (data) {
-          setPet(data as PetProfile);
+        if (isUUID) {
+            const data = await getPetById(trimmedId);
+            if (data) {
+                petData = { id: trimmedId, ...data };
+            }
+        } else {
+            petData = await getPetByShortId(trimmedId);
+        }
+        
+        if (petData) {
+          setPet(petData as PetProfile);
         } else {
           setError("Pet not found");
         }
@@ -358,14 +362,15 @@ const PetProfilePage: React.FC = () => {
         let petData: any = null;
         const trimmedId = id.trim();
         
-        // If it starts with SSP or does not have a hyphen, it's a shortId.
-        if (trimmedId.toUpperCase().startsWith('SSP-') || !trimmedId.includes('-')) {
-            petData = await getPetByShortId(trimmedId);
-        } else { // Otherwise, assume it's a full UUID.
+        const isUUID = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(trimmedId);
+
+        if (isUUID) {
             const data = await getPetById(trimmedId);
             if (data) {
                 petData = { id: trimmedId, ...data };
             }
+        } else {
+            petData = await getPetByShortId(trimmedId);
         }
 
         if (petData) {
