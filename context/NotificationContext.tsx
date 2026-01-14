@@ -134,34 +134,42 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
     if (!user) return;
 
     const checkReminders = () => {
-      const savedPet = localStorage.getItem(`pet_${user.uid}`);
-      if (!savedPet) return;
-      const pet: PetProfile = JSON.parse(savedPet);
-
-      pet.vaccinations?.forEach(v => {
-        if (!v.nextDueDate) return;
-        const dueDate = new Date(v.nextDueDate);
-        const today = new Date();
-        const diffDays = Math.ceil((dueDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+      const savedPetsJSON = localStorage.getItem(`ssp_pets_${user.uid}`);
+      if (!savedPetsJSON) return;
+      
+      try {
+        const pets: PetProfile[] = JSON.parse(savedPetsJSON);
+        if (!Array.isArray(pets) || pets.length === 0) return;
         
-        if (diffDays <= 7 && diffDays > 0) {
-          const alreadyNotified = notifications.some(n => n.message.includes(v.name) && n.timestamp.startsWith(today.toISOString().split('T')[0]));
-          if (!alreadyNotified && localStorage.getItem('ssp_pref_vaccines') !== 'false') {
-            addNotification('Vaccination Reminder', `${pet.name}'s ${v.name} booster is due in ${diffDays} days!`, 'warning');
-          }
-        }
-      });
+        const pet = pets[0]; // Use the primary pet for these reminders
 
-      if (pet.weightHistory?.length > 0 && localStorage.getItem('ssp_pref_weight') !== 'false') {
-        const lastLog = new Date(pet.weightHistory[pet.weightHistory.length - 1].date);
-        const today = new Date();
-        const diffDays = Math.ceil((today.getTime() - lastLog.getTime()) / (1000 * 60 * 60 * 24));
-        if (diffDays >= 30) {
-          const alreadyNotified = notifications.some(n => n.title === 'Weight Check' && n.timestamp.startsWith(today.toISOString().split('T')[0]));
-          if (!alreadyNotified) {
-            addNotification('Weight Check', `It's been a month since ${pet.name}'s last weight log.`, 'info');
+        pet.vaccinations?.forEach(v => {
+          if (!v.nextDueDate) return;
+          const dueDate = new Date(v.nextDueDate);
+          const today = new Date();
+          const diffDays = Math.ceil((dueDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+          
+          if (diffDays <= 7 && diffDays > 0) {
+            const alreadyNotified = notifications.some(n => n.message.includes(v.name) && n.timestamp.startsWith(today.toISOString().split('T')[0]));
+            if (!alreadyNotified && localStorage.getItem('ssp_pref_vaccines') !== 'false') {
+              addNotification('Vaccination Reminder', `${pet.name}'s ${v.name} booster is due in ${diffDays} days!`, 'warning');
+            }
+          }
+        });
+
+        if (pet.weightHistory?.length > 0 && localStorage.getItem('ssp_pref_weight') !== 'false') {
+          const lastLog = new Date(pet.weightHistory[pet.weightHistory.length - 1].date);
+          const today = new Date();
+          const diffDays = Math.ceil((today.getTime() - lastLog.getTime()) / (1000 * 60 * 60 * 24));
+          if (diffDays >= 30) {
+            const alreadyNotified = notifications.some(n => n.title === 'Weight Check' && n.timestamp.startsWith(today.toISOString().split('T')[0]));
+            if (!alreadyNotified) {
+              addNotification('Weight Check', `It's been a month since ${pet.name}'s last weight log.`, 'info');
+            }
           }
         }
+      } catch (e) {
+        console.error("Failed to parse pet data for reminders", e);
       }
     };
 

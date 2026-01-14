@@ -39,8 +39,17 @@ const PetCare: React.FC = () => {
   const [aiTip, setAiTip] = useState<string | null>(null);
 
   useEffect(() => {
-    const saved = localStorage.getItem(`pet_${user?.uid}`);
-    if (saved) setPet(JSON.parse(saved));
+    const saved = localStorage.getItem(`ssp_pets_${user?.uid}`);
+    if (saved) {
+      try {
+        const pets = JSON.parse(saved);
+        if (Array.isArray(pets) && pets.length > 0) {
+          setPet(pets[0]);
+        }
+      } catch (e) {
+        console.error("Error parsing pet data in PetCare:", e);
+      }
+    }
   }, [user]);
 
   const handleAction = (type: string) => {

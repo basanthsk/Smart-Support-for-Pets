@@ -258,7 +258,7 @@ const PetProfilePage: React.FC = () => {
     const day = String(date.getDate()).padStart(2, '0');
     const month = String(date.getMonth() + 1).padStart(2, '0');
     const year = date.getFullYear();
-    return `${ownerInitial}${petInitial}${day}${month}${year}`;
+    return `SSP-${ownerInitial}${petInitial}${day}${month}${year}`;
   };
 
   useEffect(() => {
@@ -322,7 +322,7 @@ const PetProfilePage: React.FC = () => {
             const code = jsQR(imageData.data, imageData.width, imageData.height);
             if (code) {
               const url = code.data;
-              const match = url.match(/#\/v\/([a-f0-9-]+)/);
+              const match = url.match(/#\/v\/([a-zA-Z0-9-]+)/);
               if (match && match[1]) {
                 identifyPet(match[1]);
               } else {
@@ -624,7 +624,7 @@ const PetProfilePage: React.FC = () => {
                       autoFocus
                       value={manualIdInput}
                       onChange={(e) => setManualIdInput(e.target.value)}
-                      placeholder="e.g., JD12052023"
+                      placeholder="e.g., SSP-JD12052023"
                       className="w-full bg-slate-50 border border-slate-200 rounded-2xl p-5 text-lg font-mono tracking-widest outline-none focus:ring-4 focus:ring-theme/10 focus:bg-white"
                     />
                   </div>
@@ -766,7 +766,7 @@ const PetProfilePage: React.FC = () => {
                 </div>
                 <div className="w-full p-4 bg-slate-50 rounded-[2rem] flex flex-col items-center gap-4 border border-slate-100/50">
                   <img src={generateQRCode(selectedPet.id)} className="w-40 h-40 bg-white p-2 rounded-2xl shadow-inner border border-slate-100" alt="QR ID" />
-                  <div className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] font-mono">SSP-ID: {selectedPet.shortId}</div>
+                  <div className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] font-mono">{selectedPet.shortId}</div>
                 </div>
               </div>
             </div>
