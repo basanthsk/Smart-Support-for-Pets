@@ -1,4 +1,3 @@
-
 import React from 'react';
 
 export enum AppRoutes {
@@ -14,6 +13,7 @@ export enum AppRoutes {
   CHAT = '/chat',
   FIND_FRIENDS = '/find-friends',
   PUBLIC_PET_PROFILE = '/v/:petId',
+  USER_PROFILE = '/user/:username',
 }
 
 export interface NavItem {
@@ -29,6 +29,7 @@ export interface User {
   photoURL: string | null;
   phoneNumber?: string;
   username?: string;
+  petName?: string;
 }
 
 export interface WeightRecord {

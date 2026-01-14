@@ -245,6 +245,38 @@ export const sendChatMessage = async (chatId: string, senderId: string, text: st
   });
 };
 
+export const getUserByUsername = async (username: string) => {
+  const q = query(
+    collection(db, "users"),
+    where("username", "==", username.toLowerCase().trim()),
+    limit(1)
+  );
+  const querySnapshot = await getDocs(q);
+  if (querySnapshot.empty) {
+    return null;
+  }
+  const userDoc = querySnapshot.docs[0];
+  return { id: userDoc.id, ...userDoc.data() };
+};
+
+export const onPostsUpdateByUserId = (
+  userId: string,
+  callback: (posts: any[]) => void
+) => {
+  const q = query(
+    collection(db, "posts"),
+    where("userId", "==", userId),
+    orderBy("createdAt", "desc")
+  );
+
+  const unsubscribe = onSnapshot(q, (snapshot) => {
+    const posts = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    callback(posts);
+  });
+
+  return unsubscribe;
+};
+
 export const searchUsers = async (searchTerm: string) => {
   if (!searchTerm?.trim()) return [];
   const term = searchTerm.toLowerCase().trim();

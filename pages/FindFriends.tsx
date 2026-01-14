@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Search, UserPlus, UserCheck, Loader2, User as UserIcon, MessageSquare } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { searchUsers, followUser, unfollowUser, onFollowsUpdate, startChat } from '../services/firebase';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { AppRoutes } from '../types';
 import debounce from 'lodash.debounce';
 
@@ -12,6 +12,7 @@ interface FoundUser {
   email: string;
   photoURL: string;
   username: string;
+  petName?: string;
 }
 
 const FindFriends: React.FC = () => {
@@ -105,7 +106,7 @@ const FindFriends: React.FC = () => {
 
           return (
             <div key={foundUser.id} className="bg-white p-6 rounded-3xl border border-slate-100 flex items-center justify-between gap-4 transition-all hover:shadow-lg hover:border-indigo-100">
-              <div className="flex items-center gap-4">
+              <Link to={`/user/${foundUser.username}`} className="flex items-center gap-4 flex-1 min-w-0">
                 <div className="w-14 h-14 rounded-2xl overflow-hidden bg-slate-100">
                   <img src={foundUser.photoURL || `https://ui-avatars.com/api/?name=${foundUser.displayName}`} alt={foundUser.displayName} className="w-full h-full object-cover" />
                 </div>
@@ -113,7 +114,7 @@ const FindFriends: React.FC = () => {
                   <h4 className="font-black text-slate-800">{foundUser.displayName}</h4>
                   <p className="text-sm font-medium text-slate-400">@{foundUser.username}</p>
                 </div>
-              </div>
+              </Link>
               <div className="flex items-center gap-2">
                 {isMutual && !isCurrentUser && (
                   <button
