@@ -249,6 +249,18 @@ const PetProfilePage: React.FC = () => {
   const [scanView, setScanView] = useState<'options' | 'manualInput'>('options');
   const [manualIdInput, setManualIdInput] = useState('');
 
+  const generateShortId = (ownerName?: string, petName?: string, birthday?: string): string => {
+    const ownerInitial = ownerName?.charAt(0).toUpperCase() || 'X';
+    const petInitial = petName?.charAt(0).toUpperCase() || 'X';
+    if (!birthday) return `${ownerInitial}${petInitial}${new Date().getFullYear()}`;
+    const date = new Date(birthday);
+    if (isNaN(date.getTime())) return `${ownerInitial}${petInitial}${new Date().getFullYear()}`;
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = date.getFullYear();
+    return `${ownerInitial}${petInitial}${day}${month}${year}`;
+  };
+
   useEffect(() => {
     if (!user?.uid) return;
     const saved = localStorage.getItem(`ssp_pets_${user.uid}`);
@@ -258,9 +270,10 @@ const PetProfilePage: React.FC = () => {
         
         let wasUpdated = false;
         const migratedPets = parsed.map((p: PetProfile) => {
-          if (!p.shortId && p.id) {
+          const newShortId = generateShortId(user.displayName || 'User', p.name, p.birthday);
+          if (p.shortId !== newShortId) {
             wasUpdated = true;
-            return { ...p, shortId: p.id.slice(0, 8) };
+            return { ...p, shortId: newShortId };
           }
           return p;
         });
@@ -277,7 +290,7 @@ const PetProfilePage: React.FC = () => {
         console.error("Storage error:", e);
       }
     }
-  }, [user?.uid]);
+  }, [user]);
 
   const savePetsToStorage = async (updatedPets: PetProfile[]) => {
     if (!user?.uid) return;
@@ -336,8 +349,7 @@ const PetProfilePage: React.FC = () => {
         let petData: any = null;
         const trimmedId = id.trim();
         
-        // A simple check to differentiate between a short ID (8 chars) and a full UUID
-        if (trimmedId.length > 8) {
+        if (trimmedId.includes('-')) {
             const data = await getPetById(trimmedId);
             if (data) {
                 petData = { id: trimmedId, ...data };
@@ -391,7 +403,7 @@ const PetProfilePage: React.FC = () => {
     setError(null);
     if (!newPet.birthday || new Date(newPet.birthday) > new Date()) { setError("Birth date cannot be in the future."); return; }
     const id = crypto.randomUUID();
-    const shortId = id.slice(0, 8);
+    const shortId = generateShortId(user?.displayName, newPet.name, newPet.birthday);
     const { years, months } = calculateAge(newPet.birthday || '');
     const qrCodeUrl = generateQRCode(id);
     const completePet: PetProfile = { ...newPet as PetProfile, id, shortId, ownerId: user?.uid || '', ownerName: user?.displayName || 'Pet Parent', qrCodeUrl, ageYears: String(years), ageMonths: String(months), weightHistory: [], vaccinations: [], isPublic: true };
@@ -399,7 +411,6 @@ const PetProfilePage: React.FC = () => {
     await savePetsToStorage(updatedPets);
     setSelectedPet(completePet);
     
-    // Close form immediately and reset state for next time
     setIsAdding(false);
     setStep(1);
     setNewPet({ name: '', breed: '', birthday: '', bio: '', species: 'Dog', healthNotes: '', weightHistory: [], vaccinations: [] });
@@ -411,13 +422,12 @@ const PetProfilePage: React.FC = () => {
     setError(null);
     if (!selectedPet.birthday || new Date(selectedPet.birthday) > new Date()) { setError("Birth date cannot be in the future."); return; }
     const { years, months } = calculateAge(selectedPet.birthday || '');
-    const shortId = selectedPet.id.slice(0, 8);
+    const shortId = generateShortId(user?.displayName, selectedPet.name, selectedPet.birthday);
     const updatedPet = { ...selectedPet, ageYears: String(years), ageMonths: String(months), qrCodeUrl: generateQRCode(selectedPet.id), shortId };
     const updatedPets = pets.map(p => p.id === selectedPet.id ? updatedPet : p);
     await savePetsToStorage(updatedPets);
     setSelectedPet(updatedPet);
     
-    // Close form immediately
     setIsEditing(false);
   };
 
@@ -614,7 +624,7 @@ const PetProfilePage: React.FC = () => {
                       autoFocus
                       value={manualIdInput}
                       onChange={(e) => setManualIdInput(e.target.value)}
-                      placeholder="e.g., 1a2b3c4d"
+                      placeholder="e.g., JD12052023"
                       className="w-full bg-slate-50 border border-slate-200 rounded-2xl p-5 text-lg font-mono tracking-widest outline-none focus:ring-4 focus:ring-theme/10 focus:bg-white"
                     />
                   </div>
@@ -756,7 +766,7 @@ const PetProfilePage: React.FC = () => {
                 </div>
                 <div className="w-full p-4 bg-slate-50 rounded-[2rem] flex flex-col items-center gap-4 border border-slate-100/50">
                   <img src={generateQRCode(selectedPet.id)} className="w-40 h-40 bg-white p-2 rounded-2xl shadow-inner border border-slate-100" alt="QR ID" />
-                  <div className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] font-mono">SSP-ID: {selectedPet.id.slice(0, 8)}</div>
+                  <div className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] font-mono">SSP-ID: {selectedPet.shortId}</div>
                 </div>
               </div>
             </div>

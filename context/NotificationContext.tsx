@@ -1,8 +1,9 @@
+
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { useAuth } from './AuthContext';
 import { PetProfile } from '../types';
 import { db } from '../services/firebase';
-import { doc, onSnapshot } from "firebase/firestore";
+import { collection, query, onSnapshot, doc, deleteDoc, orderBy } from "firebase/firestore";
 
 export interface AppNotification {
   id: string;
@@ -103,6 +104,31 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
   const clearAll = () => {
     setNotifications([]);
   };
+  
+  // Listener for Firestore-based notifications
+  useEffect(() => {
+    if (!user) return;
+
+    const notificationsRef = collection(db, "users", user.uid, "notifications");
+    const q = query(notificationsRef, orderBy("timestamp", "asc"));
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+        snapshot.docChanges().forEach(async (change) => {
+            if (change.type === "added") {
+                const notifData = change.doc.data();
+                addNotification(
+                    notifData.title,
+                    notifData.message,
+                    notifData.type as AppNotification['type']
+                );
+                // Delete the notification from Firestore after it has been processed
+                await deleteDoc(change.doc.ref);
+            }
+        });
+    });
+
+    return () => unsubscribe();
+  }, [user, addNotification]);
 
   useEffect(() => {
     if (!user) return;

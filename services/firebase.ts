@@ -1,3 +1,4 @@
+
 import { initializeApp } from "firebase/app";
 import { 
   getAuth, 
@@ -104,7 +105,7 @@ export const getPetByShortId = async (shortId: string) => {
   if (!shortId) return null;
   const q = query(
     collection(db, "pets"), 
-    where("shortId", "==", shortId.toLowerCase().trim()), 
+    where("shortId", "==", shortId.toUpperCase().trim()), 
     limit(1)
   );
   const querySnapshot = await getDocs(q);
