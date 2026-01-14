@@ -1,7 +1,8 @@
-
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { useAuth } from './AuthContext';
 import { PetProfile } from '../types';
+import { db } from '../services/firebase';
+import { doc, onSnapshot } from "firebase/firestore";
 
 export interface AppNotification {
   id: string;
@@ -26,6 +27,7 @@ const NotificationContext = createContext<NotificationContextType | undefined>(u
 
 export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user } = useAuth();
+  const [dbUser, setDbUser] = useState<any>(null);
   const [permissionStatus, setPermissionStatus] = useState<NotificationPermission>(
     'Notification' in window ? Notification.permission : 'denied'
   );
@@ -37,6 +39,19 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
   });
 
   const unreadCount = notifications.filter(n => !n.read).length;
+  
+  useEffect(() => {
+    if (!user) {
+      setDbUser(null);
+      return;
+    }
+    const unsub = onSnapshot(doc(db, "users", user.uid), (doc) => {
+      if (doc.exists()) {
+        setDbUser(doc.data());
+      }
+    });
+    return () => unsub();
+  }, [user]);
 
   useEffect(() => {
     if (user) {
@@ -128,6 +143,26 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
     checkReminders();
     return () => clearInterval(interval);
   }, [user, addNotification, notifications]);
+  
+  useEffect(() => {
+    if (!dbUser || (dbUser && dbUser.phoneNumber)) {
+        return; 
+    }
+    
+    const intervalId = setInterval(() => {
+        addNotification(
+            "Complete Your Profile",
+            "Please add a phone number in your settings to ensure you can be contacted if your pet is found.",
+            "warning"
+        );
+    }, 10 * 60 * 1000); // every 10 minutes
+
+    return () => {
+        clearInterval(intervalId);
+    };
+
+  }, [dbUser, addNotification]);
+
 
   return (
     <NotificationContext.Provider value={{ notifications, unreadCount, permissionStatus, addNotification, markAsRead, clearAll, requestPermission }}>
