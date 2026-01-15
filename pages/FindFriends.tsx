@@ -1,8 +1,9 @@
+
 import React, { useState, useEffect, useCallback } from 'react';
-import { Search, UserPlus, UserCheck, Loader2, User as UserIcon, MessageSquare } from 'lucide-react';
+import { Search, UserPlus, UserCheck, Mail, Loader2, User as UserIcon, MessageSquare } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { searchUsers, followUser, unfollowUser, onFollowsUpdate, startChat } from '../services/firebase';
-import { useNavigate, Link } from 'react-router-dom';
+import { searchUsersByEmail, followUser, unfollowUser, onFollowsUpdate, startChat } from '../services/firebase';
+import { useNavigate } from 'react-router-dom';
 import { AppRoutes } from '../types';
 import debounce from 'lodash.debounce';
 
@@ -12,7 +13,6 @@ interface FoundUser {
   email: string;
   photoURL: string;
   username: string;
-  petName?: string;
 }
 
 const FindFriends: React.FC = () => {
@@ -41,10 +41,9 @@ const FindFriends: React.FC = () => {
     setIsLoading(true);
     setNoResults(false);
     try {
-      const users = await searchUsers(query);
-      const filteredUsers = users.filter(u => u.id !== user.uid); // Exclude current user from results
-      setResults(filteredUsers as FoundUser[]);
-      if (filteredUsers.length === 0) {
+      const users = await searchUsersByEmail(query, user.uid);
+      setResults(users as FoundUser[]);
+      if (users.length === 0) {
         setNoResults(true);
       }
     } catch (error) {
@@ -81,17 +80,17 @@ const FindFriends: React.FC = () => {
   return (
     <div className="max-w-3xl mx-auto space-y-10 pb-20 animate-fade-in">
       <div>
-        <h2 className="text-4xl font-black text-slate-900 tracking-tighter">Exploration</h2>
-        <p className="text-slate-500 font-medium">Connect with other pet parents by searching their email or username.</p>
+        <h2 className="text-4xl font-black text-slate-900 tracking-tighter">Find Friends</h2>
+        <p className="text-slate-500 font-medium">Connect with other pet parents by searching their email.</p>
       </div>
 
       <div className="relative">
-        <Search size={20} className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-400" />
+        <Mail size={20} className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-400" />
         <input
-          type="text"
+          type="email"
           value={searchQuery}
           onChange={handleSearchChange}
-          placeholder="Enter email or username to find a user..."
+          placeholder="Enter an email address to find a user..."
           className="w-full bg-white border border-slate-200 rounded-2xl py-6 pl-14 pr-6 text-lg font-medium outline-none focus:ring-4 focus:ring-indigo-100 transition-all shadow-sm"
         />
         {isLoading && <Loader2 size={20} className="absolute right-6 top-1/2 -translate-y-1/2 text-slate-400 animate-spin" />}
@@ -102,11 +101,10 @@ const FindFriends: React.FC = () => {
           const isFollowing = follows.following.includes(foundUser.id);
           const isFollower = follows.followers.includes(foundUser.id);
           const isMutual = isFollowing && isFollower;
-          const isCurrentUser = user?.uid === foundUser.id;
-
+          
           return (
             <div key={foundUser.id} className="bg-white p-6 rounded-3xl border border-slate-100 flex items-center justify-between gap-4 transition-all hover:shadow-lg hover:border-indigo-100">
-              <Link to={`/user/${foundUser.username}`} className="flex items-center gap-4 flex-1 min-w-0">
+              <div className="flex items-center gap-4">
                 <div className="w-14 h-14 rounded-2xl overflow-hidden bg-slate-100">
                   <img src={foundUser.photoURL || `https://ui-avatars.com/api/?name=${foundUser.displayName}`} alt={foundUser.displayName} className="w-full h-full object-cover" />
                 </div>
@@ -114,34 +112,28 @@ const FindFriends: React.FC = () => {
                   <h4 className="font-black text-slate-800">{foundUser.displayName}</h4>
                   <p className="text-sm font-medium text-slate-400">@{foundUser.username}</p>
                 </div>
-              </Link>
+              </div>
               <div className="flex items-center gap-2">
-                {isMutual && !isCurrentUser && (
-                  <button
-                    onClick={() => handleMessageUser(foundUser.id)}
-                    className="p-3 bg-emerald-50 text-emerald-600 rounded-xl hover:bg-emerald-100 transition-all"
-                    title="Message"
-                  >
-                    <MessageSquare size={20} />
-                  </button>
+                {isMutual && (
+                    <button
+                        onClick={() => handleMessageUser(foundUser.id)}
+                        className="p-3 bg-emerald-50 text-emerald-600 rounded-xl hover:bg-emerald-100 transition-all"
+                        title="Message"
+                    >
+                        <MessageSquare size={20} />
+                    </button>
                 )}
-                {!isCurrentUser ? (
-                  <button
-                    onClick={() => handleFollowToggle(foundUser.id, isFollowing)}
-                    className={`px-5 py-3 rounded-xl font-bold text-sm flex items-center gap-2 transition-all ${
-                      isFollowing
-                        ? 'bg-slate-100 text-slate-500 hover:bg-slate-200'
-                        : 'bg-indigo-600 text-white hover:bg-indigo-700'
-                    }`}
-                  >
-                    {isFollowing ? <UserCheck size={16} /> : <UserPlus size={16} />}
-                    {isFollowing ? 'Following' : 'Follow'}
-                  </button>
-                ) : (
-                  <div className="px-5 py-3 rounded-xl font-bold text-sm bg-slate-100 text-slate-500">
-                    This is you
-                  </div>
-                )}
+                <button
+                  onClick={() => handleFollowToggle(foundUser.id, isFollowing)}
+                  className={`px-5 py-3 rounded-xl font-bold text-sm flex items-center gap-2 transition-all ${
+                    isFollowing
+                      ? 'bg-slate-100 text-slate-500 hover:bg-slate-200'
+                      : 'bg-indigo-600 text-white hover:bg-indigo-700'
+                  }`}
+                >
+                  {isFollowing ? <UserCheck size={16} /> : <UserPlus size={16} />}
+                  {isFollowing ? 'Following' : 'Follow'}
+                </button>
               </div>
             </div>
           );

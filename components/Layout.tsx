@@ -1,13 +1,11 @@
 
-import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { Menu, Bell, User as UserIcon, Trash2, CheckCircle2, AlertTriangle, Info, X, Search, Settings as SettingsIcon, Dog, Sparkles, Loader2 } from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
+import { Menu, Bell, User as UserIcon, Trash2, CheckCircle2, AlertTriangle, Info, X, Search, Settings as SettingsIcon, Dog, Sparkles } from 'lucide-react';
 import Sidebar from './Sidebar';
 import { useAuth } from '../context/AuthContext';
 import { useNotifications, AppNotification } from '../context/NotificationContext';
 import { Link, useLocation } from "react-router-dom";
-import { AppRoutes, User } from '../types';
-import { searchUsers } from '../services/firebase';
-import debounce from 'lodash.debounce';
+import { AppRoutes } from '../types';
 
 interface NotificationItemProps { 
   notif: AppNotification; 
@@ -20,10 +18,10 @@ const NotificationItem: React.FC<NotificationItemProps> = ({ notif, onMarkRead }
 
   return (
     <div 
-      className={`p-5 hover:bg-slate-50 transition-colors border-b border-slate-100 flex gap-4 items-start ${!notif.read ? 'bg-indigo-50/20' : ''}`}
+      className={`p-4 hover:bg-slate-50 transition-colors border-b border-slate-100 flex gap-4 items-start ${!notif.read ? 'bg-indigo-50/20' : ''}`}
       onClick={() => onMarkRead(notif.id)}
     >
-      <div className={`p-2.5 rounded-xl shrink-0 ${colorClass} shadow-sm`}>
+      <div className={`p-2 rounded-xl shrink-0 ${colorClass}`}>
         <Icon size={18} />
       </div>
       <div className="flex-1 space-y-0.5">
@@ -43,44 +41,13 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const location = useLocation();
   const { notifications, unreadCount, markAsRead, clearAll } = useNotifications();
   const notifRef = useRef<HTMLDivElement>(null);
-  
-  const [searchQuery, setSearchQuery] = useState('');
-  const [searchResults, setSearchResults] = useState<User[]>([]);
-  const [isSearching, setIsSearching] = useState(false);
-  const [isSearchFocused, setIsSearchFocused] = useState(false);
-  const searchRef = useRef<HTMLDivElement>(null);
 
   const LOGO_URL = "https://res.cloudinary.com/dazlddxht/image/upload/v1768234409/SS_Paw_Pal_Logo_aceyn8.png";
-
-  const debouncedSearch = useCallback(
-    debounce(async (query: string) => {
-      if (!query.trim()) {
-        setSearchResults([]);
-        setIsSearching(false);
-        return;
-      }
-      setIsSearching(true);
-      const users = await searchUsers(query);
-      const filteredUsers = users.filter(u => u.id !== user?.uid);
-      setSearchResults(filteredUsers as User[]);
-      setIsSearching(false);
-    }, 400),
-    [user?.uid]
-  );
-
-  useEffect(() => {
-    debouncedSearch(searchQuery);
-    return () => debouncedSearch.cancel();
-  }, [searchQuery, debouncedSearch]);
-
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (notifRef.current && !notifRef.current.contains(event.target as Node)) {
         setIsNotifOpen(false);
-      }
-      if (searchRef.current && !searchRef.current.contains(event.target as Node)) {
-        setIsSearchFocused(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -94,21 +61,13 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     if (path === AppRoutes.PET_CARE) return "Daily Wellness";
     if (path === AppRoutes.CREATE_POST) return "Community Feed";
     if (path === AppRoutes.CHAT) return "Direct Messages";
-    if (path === AppRoutes.FIND_FRIENDS) return "Find Friends";
     if (path === AppRoutes.PET_PROFILE) return "Pet Family";
     if (path === AppRoutes.SETTINGS) return "Account Hub";
-    if (path.startsWith('/user/')) return "User Profile";
     return "SS Paw Pal";
   };
 
-  const clearSearch = () => {
-    setSearchQuery('');
-    setSearchResults([]);
-    setIsSearchFocused(false);
-  };
-
   return (
-    <div className="flex h-screen w-full overflow-hidden bg-slate-50/60">
+    <div className="flex h-screen w-full overflow-hidden bg-slate-50/40">
       <Sidebar 
         isOpen={isSidebarOpen} 
         setIsOpen={setIsSidebarOpen} 
@@ -116,121 +75,82 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         setIsCollapsed={setIsSidebarCollapsed}
       />
 
-      <div className={`
-        flex-1 flex flex-col overflow-hidden transition-all duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)]
-      `}>
-        <header className="h-28 bg-white/70 backdrop-blur-xl border-b border-slate-200/50 flex items-center justify-between px-8 md:px-14 z-40 transition-all duration-500">
-          <div className="flex items-center gap-8">
+      <div className="flex-1 flex flex-col overflow-hidden transition-all duration-500">
+        <header className="h-24 bg-white/80 backdrop-blur-md border-b border-slate-200/50 flex items-center justify-between px-6 md:px-12 z-40 transition-all duration-500">
+          <div className="flex items-center gap-6">
             <button 
               onClick={() => setIsSidebarOpen(true)} 
-              className="md:hidden p-4 text-slate-600 hover:bg-slate-100 rounded-2xl transition-all active:scale-90"
+              className="md:hidden p-3 text-slate-600 hover:bg-slate-100 rounded-2xl transition-all active:scale-90"
             >
               <Menu size={24} />
             </button>
             
             <div className="hidden md:block">
-              <p className="text-[9px] font-black text-theme uppercase tracking-[0.5em] mb-1.5 opacity-60">System / {getPageTitle()}</p>
-              <h2 className="text-3xl font-black text-slate-900 tracking-tighter leading-none">{getPageTitle()}</h2>
+              <p className="text-[10px] font-black text-theme uppercase tracking-[0.3em] mb-1">Navigation / {getPageTitle()}</p>
+              <h2 className="text-2xl font-black text-slate-900 tracking-tighter">{getPageTitle()}</h2>
             </div>
 
             <Link to={AppRoutes.HOME} className="flex items-center gap-3 md:hidden active:scale-95 transition-transform">
-              <div className="w-12 h-12 bg-white rounded-2xl p-1.5 flex items-center justify-center shadow-xl border border-slate-100">
+              <div className="w-10 h-10 bg-white rounded-xl p-1 flex items-center justify-center shadow-lg border border-slate-100">
                 <img src={LOGO_URL} alt="Logo" className="w-full h-full object-contain" />
               </div>
             </Link>
           </div>
 
-          <div className="flex items-center gap-6 md:gap-10">
-            <div className="hidden lg:flex items-center relative group" ref={searchRef}>
-              <Search size={20} className="absolute left-5 text-slate-400 group-focus-within:text-theme transition-all z-10" />
+          <div className="flex items-center gap-4 md:gap-8">
+            <div className="hidden lg:flex items-center relative group">
+              <Search size={18} className="absolute left-4 text-slate-400 group-focus-within:text-theme transition-colors" />
               <input 
                 type="text" 
-                placeholder="Find a user..." 
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                onFocus={() => setIsSearchFocused(true)}
-                className="bg-slate-100/50 border border-transparent rounded-[1.5rem] py-3.5 pl-14 pr-6 text-[15px] font-bold text-slate-700 focus:bg-white focus:ring-[10px] focus:ring-theme/5 focus:border-theme/20 outline-none transition-all w-72 lg:w-96"
+                placeholder="Search anything..." 
+                className="bg-slate-50/50 border border-slate-200/50 rounded-2xl py-2.5 pl-11 pr-4 text-sm font-medium focus:bg-white focus:ring-4 focus:ring-theme/10 focus:border-theme/30 outline-none transition-all w-64"
               />
-              {isSearchFocused && searchQuery && (
-                <div className="absolute top-full mt-4 w-[28rem] bg-white/80 backdrop-blur-xl rounded-[2.5rem] shadow-2xl border border-slate-100 overflow-hidden z-50 animate-in fade-in zoom-in-95 duration-300">
-                  {isSearching ? (
-                    <div className="p-10 flex items-center justify-center gap-3">
-                      <Loader2 size={18} className="animate-spin text-theme" />
-                      <span className="text-xs font-black text-slate-400 uppercase tracking-widest">Searching...</span>
-                    </div>
-                  ) : searchResults.length > 0 ? (
-                    <div className="max-h-96 overflow-y-auto custom-scrollbar p-2">
-                      {searchResults.map(result => (
-                        <Link 
-                          key={result.id} 
-                          to={`/user/${result.username}`} 
-                          onClick={clearSearch}
-                          className="flex items-center gap-4 p-4 hover:bg-theme-light rounded-2xl transition-all group"
-                        >
-                          <div className="w-12 h-12 rounded-xl overflow-hidden bg-slate-100">
-                            <img src={result.photoURL || `https://ui-avatars.com/api/?name=${result.displayName}`} className="w-full h-full object-cover" />
-                          </div>
-                          <div>
-                            <p className="font-black text-slate-800 group-hover:text-theme">{result.displayName}</p>
-                            <p className="text-xs text-slate-400 font-bold">@{result.username}</p>
-                          </div>
-                        </Link>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="p-10 text-center space-y-3">
-                       <p className="font-black text-slate-800">No Users Found</p>
-                       <p className="text-xs text-slate-400">Try a different username or email.</p>
-                    </div>
-                  )}
-                </div>
-              )}
             </div>
 
-            <div className="flex items-center gap-3 md:gap-6">
+            <div className="flex items-center gap-2 md:gap-4">
               <div className="relative" ref={notifRef}>
                 <button 
                   onClick={() => setIsNotifOpen(!isNotifOpen)} 
-                  className={`p-4 rounded-[1.25rem] transition-all relative ${isNotifOpen ? 'bg-slate-900 text-white shadow-2xl shadow-slate-900/30' : 'text-slate-500 hover:bg-theme-light hover:text-theme'}`}
+                  className={`p-3.5 rounded-2xl transition-all relative ${isNotifOpen ? 'bg-theme text-white shadow-xl shadow-theme/30' : 'text-slate-500 hover:bg-theme/5 hover:text-theme'}`}
                 >
-                  <Bell size={22} />
+                  <Bell size={20} />
                   {unreadCount > 0 && (
-                    <span className="absolute top-3.5 right-3.5 w-5 h-5 rounded-full bg-rose-500 border-2 border-white text-[9px] font-black text-white flex items-center justify-center animate-bounce">
+                    <span className="absolute top-2.5 right-2.5 w-4.5 h-4.5 rounded-full bg-rose-500 border-2 border-white text-[8px] font-black text-white flex items-center justify-center animate-bounce">
                       {unreadCount}
                     </span>
                   )}
                 </button>
 
                 {isNotifOpen && (
-                  <div className="absolute right-0 mt-8 w-80 md:w-[28rem] bg-white rounded-[3rem] shadow-[0_40px_100px_-20px_rgba(0,0,0,0.2)] border border-slate-100 overflow-hidden z-[100] animate-in zoom-in-95 fade-in slide-in-from-top-4 duration-500 origin-top-right">
-                    <div className="p-8 bg-slate-50/50 border-b border-slate-100 flex items-center justify-between">
+                  <div className="absolute right-0 mt-6 w-80 md:w-[26rem] bg-white rounded-[2.5rem] shadow-[0_30px_60px_-15px_rgba(0,0,0,0.15)] border border-slate-100 overflow-hidden z-[100] animate-in zoom-in-95 fade-in duration-300 origin-top-right">
+                    <div className="p-6 bg-slate-50/50 border-b border-slate-100 flex items-center justify-between">
                       <div>
-                        <h4 className="text-lg font-black text-slate-800 tracking-tight">Activity Log</h4>
-                        <p className="text-[10px] text-slate-400 font-black uppercase tracking-[0.3em] mt-1.5">Queued Messages: {unreadCount}</p>
+                        <h4 className="text-sm font-black text-slate-800 tracking-tight">Notification Center</h4>
+                        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">Inbox ({unreadCount} unread)</p>
                       </div>
                       <button 
                         onClick={clearAll} 
-                        className="p-3 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-2xl transition-all"
-                        title="Clear History"
+                        className="p-2.5 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-xl transition-all"
+                        title="Clear all"
                       >
-                        <Trash2 size={18} />
+                        <Trash2 size={16} />
                       </button>
                     </div>
-                    <div className="max-h-[500px] overflow-y-auto custom-scrollbar">
+                    <div className="max-h-[420px] overflow-y-auto custom-scrollbar">
                       {notifications.length === 0 ? (
-                        <div className="py-28 text-center space-y-6">
-                          <div className="w-20 h-20 bg-slate-50 rounded-[2rem] flex items-center justify-center mx-auto shadow-inner">
-                            <Bell className="text-slate-200" size={40} />
+                        <div className="py-24 text-center space-y-4">
+                          <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mx-auto">
+                            <Bell className="text-slate-200" size={32} />
                           </div>
-                          <p className="text-slate-400 font-bold text-sm italic">System clear. No updates found.</p>
+                          <p className="text-slate-400 font-bold text-sm italic">Nothing new to show</p>
                         </div>
                       ) : (
                         notifications.map(notif => <NotificationItem key={notif.id} notif={notif} onMarkRead={markAsRead} />)
                       )}
                     </div>
                     {notifications.length > 0 && (
-                      <div className="p-5 bg-slate-50 border-t border-slate-100 text-center">
-                        <button className="text-[11px] font-black uppercase tracking-[0.3em] text-theme hover:underline">Launch Full Log View</button>
+                      <div className="p-4 bg-slate-50 border-t border-slate-100 text-center">
+                        <button className="text-[10px] font-black uppercase tracking-widest text-theme hover:underline">View all alerts</button>
                       </div>
                     )}
                   </div>
@@ -239,49 +159,43 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
               <Link 
                 to={AppRoutes.SETTINGS}
-                className="hidden md:flex p-4 text-slate-500 hover:bg-theme-light hover:text-theme rounded-[1.25rem] transition-all"
+                className="hidden md:flex p-3.5 text-slate-500 hover:bg-theme/5 hover:text-theme rounded-2xl transition-all"
               >
-                <SettingsIcon size={22} />
+                <SettingsIcon size={20} />
               </Link>
             </div>
             
-            <div className="h-12 w-px bg-slate-200 hidden md:block opacity-50"></div>
+            <div className="h-10 w-px bg-slate-200 hidden md:block"></div>
             
             <Link 
               to={AppRoutes.SETTINGS}
-              className="flex items-center gap-4 p-2 pr-6 bg-slate-100/40 hover:bg-white rounded-[1.5rem] transition-all border border-transparent hover:border-slate-200/50 hover:shadow-2xl hover:shadow-slate-200/40 group"
+              className="flex items-center gap-3 p-1.5 pr-4 bg-slate-50/50 hover:bg-white rounded-2xl transition-all border border-slate-200/50 hover:border-theme/30 hover:shadow-sm"
             >
-              <div className="h-12 w-12 rounded-[1rem] overflow-hidden bg-slate-200 border-2 border-white flex items-center justify-center shadow-lg transition-transform group-hover:scale-105">
+              <div className="h-10 w-10 rounded-xl overflow-hidden bg-slate-100 border border-slate-200 flex items-center justify-center shadow-inner">
                 {user?.photoURL ? (
                   <img src={user.photoURL} alt={user.displayName || 'User'} className="h-full w-full object-cover" />
                 ) : (
-                  <UserIcon size={22} className="text-slate-400" />
+                  <UserIcon size={20} className="text-slate-300" />
                 )}
               </div>
               <div className="hidden lg:block text-left">
-                <p className="text-[15px] font-black text-slate-800 leading-none truncate max-w-[120px]">{user?.displayName || 'Pet Parent'}</p>
-                <p className="text-[9px] font-black text-theme uppercase tracking-[0.4em] mt-1.5">Pro Identity</p>
+                <p className="text-sm font-black text-slate-800 leading-none">{user?.displayName || 'Pet Parent'}</p>
+                <p className="text-[10px] font-black text-theme uppercase tracking-widest mt-1">Verified Parent</p>
               </div>
             </Link>
           </div>
         </header>
 
-        <main className="flex-1 overflow-y-auto p-8 md:p-14 lg:p-20 scroll-smooth bg-transparent">
-          <div className="max-w-7xl mx-auto animate-in fade-in slide-in-from-bottom-8 duration-1000">
+        <main className="flex-1 overflow-y-auto p-6 md:p-12 scroll-smooth">
+          <div className="max-w-none lg:max-w-[80vw] mx-auto animate-in fade-in slide-in-from-bottom-4 duration-700">
             {children}
           </div>
           
-          <footer className="mt-32 py-16 border-t border-slate-200/40 text-center">
-             <div className="flex items-center justify-center gap-3 text-slate-300 font-black text-[11px] uppercase tracking-[0.5em]">
-               <Dog size={14} /> SS Paw Pal <Sparkles size={14} />
+          <footer className="mt-20 py-10 border-t border-slate-100 text-center">
+             <div className="flex items-center justify-center gap-2 text-slate-300 font-black text-[10px] uppercase tracking-[0.4em]">
+               <Dog size={12} /> SS Paw Pal <Sparkles size={12} />
              </div>
-             <p className="text-slate-400 font-black text-[10px] mt-6 opacity-40 uppercase tracking-[0.2em] flex items-center justify-center gap-4">
-                <span>Terms of Service</span>
-                <span className="w-1 h-1 bg-slate-300 rounded-full"></span>
-                <span>Privacy Standards</span>
-                <span className="w-1 h-1 bg-slate-300 rounded-full"></span>
-                <span>Global v1.0</span>
-             </p>
+             <p className="text-slate-400 font-bold text-[9px] mt-4 opacity-50 uppercase tracking-widest">Global Pet Care Network © 2025</p>
           </footer>
         </main>
       </div>

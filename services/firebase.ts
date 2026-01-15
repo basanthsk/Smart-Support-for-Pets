@@ -95,24 +95,9 @@ export const syncPetToDb = async (pet: any) => {
 };
 
 export const getPetById = async (id: string) => {
-  if (!id) return null;
   const petRef = doc(db, "pets", id);
   const snap = await getDoc(petRef);
   return snap.exists() ? snap.data() : null;
-};
-
-export const getPetByShortId = async (shortId: string) => {
-  if (!shortId) return null;
-  const q = query(
-    collection(db, "pets"), 
-    where("shortId", "==", shortId.trim().toUpperCase()), 
-    limit(1)
-  );
-  const querySnapshot = await getDocs(q);
-  if (querySnapshot.empty) return null;
-  
-  const petDoc = querySnapshot.docs[0];
-  return { id: petDoc.id, ...petDoc.data() };
 };
 
 export const sendFoundPetNotification = async (pet: any, finderName: string, finderId?: string) => {
@@ -260,81 +245,16 @@ export const sendChatMessage = async (chatId: string, senderId: string, text: st
   });
 };
 
-export const getUserByUsername = async (username: string) => {
+export const searchUsersByEmail = async (email: string, currentUserId: string) => {
+  if (!email) return [];
   const q = query(
     collection(db, "users"),
-    where("username", "==", username.toLowerCase().trim()),
-    limit(1)
+    where("email", "==", email.toLowerCase().trim())
   );
   const querySnapshot = await getDocs(q);
-  if (querySnapshot.empty) {
-    return null;
-  }
-  const userDoc = querySnapshot.docs[0];
-  return { id: userDoc.id, ...userDoc.data() };
-};
-
-export const onPostsUpdateByUserId = (
-  userId: string,
-  callback: (posts: any[]) => void
-) => {
-  const q = query(
-    collection(db, "posts"),
-    where("userId", "==", userId),
-    orderBy("createdAt", "desc")
-  );
-
-  const unsubscribe = onSnapshot(q, (snapshot) => {
-    const posts = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-    callback(posts);
-  });
-
-  return unsubscribe;
-};
-
-export const searchUsers = async (searchTerm: string) => {
-  if (!searchTerm?.trim()) return [];
-  const term = searchTerm.toLowerCase().trim();
-
-  // Firestore doesn't support OR queries on different fields.
-  // We run two separate queries and merge the results.
-  const emailQuery = query(
-    collection(db, "users"),
-    where("email", ">=", term),
-    where("email", "<=", term + '\uf8ff'),
-    limit(10)
-  );
-
-  const usernameQuery = query(
-    collection(db, "users"),
-    where("username", ">=", term),
-    where("username", "<=", term + '\uf8ff'),
-    limit(10)
-  );
-  
-  try {
-    const [emailSnapshot, usernameSnapshot] = await Promise.all([
-      getDocs(emailQuery),
-      getDocs(usernameQuery)
-    ]);
-
-    const usersMap = new Map();
-    
-    emailSnapshot.docs.forEach(doc => {
-      usersMap.set(doc.id, { id: doc.id, ...doc.data() });
-    });
-    
-    usernameSnapshot.docs.forEach(doc => {
-      if (!usersMap.has(doc.id)) {
-        usersMap.set(doc.id, { id: doc.id, ...doc.data() });
-      }
-    });
-
-    return Array.from(usersMap.values());
-  } catch (error) {
-    console.error("Error searching users:", error);
-    return [];
-  }
+  return querySnapshot.docs
+    .map(doc => ({ id: doc.id, ...doc.data() }))
+    .filter(user => user.id !== currentUserId);
 };
 
 export const followUser = async (currentUserId: string, targetUserId: string) => {

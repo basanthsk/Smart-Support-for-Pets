@@ -81,7 +81,7 @@ const Home: React.FC = () => {
   useEffect(() => {
     const timer = setInterval(() => {
       setCurrentTime(new Date());
-    }, 60000); // Check every minute
+    }, 1000);
     return () => clearInterval(timer);
   }, []);
 
@@ -89,8 +89,7 @@ const Home: React.FC = () => {
   const todayKey = currentTime.toISOString().split('T')[0];
 
   useEffect(() => {
-    if (!user?.uid) return;
-    const saved = localStorage.getItem(`ssp_pets_${user.uid}`);
+    const saved = localStorage.getItem(`ssp_pets_${user?.uid}`);
     if (saved) {
       const parsed = JSON.parse(saved);
       setPets(parsed);
@@ -101,30 +100,22 @@ const Home: React.FC = () => {
   useEffect(() => {
     if (!activePet) return;
 
-    const reminderPreference = parseInt(localStorage.getItem('ssp_reminder_preference') || '10', 10);
-
     STAT_ROUTINE.forEach(task => {
-      const taskStartTime = new Date();
-      taskStartTime.setHours(task.startHour, 0, 0, 0);
-
-      const notificationTime = new Date(taskStartTime.getTime() - reminderPreference * 60000);
-
-      // Check if current time matches the calculated notification time
-      if (currentTime.getHours() === notificationTime.getHours() && currentTime.getMinutes() === notificationTime.getMinutes()) {
-        const notificationKey = `notified_reminder_${task.id}_${todayKey}_${activePet.id}`;
+      if (currentHour === task.startHour) {
+        const notificationKey = `notified_${task.id}_${todayKey}_${activePet.id}`;
         const alreadyNotified = localStorage.getItem(notificationKey);
         
         if (!alreadyNotified) {
           addNotification(
-            `Upcoming: ${task.task}`, 
-            `${activePet.name}'s ${task.task.toLowerCase()} is scheduled in ${reminderPreference === 60 ? '1 hour' : `${reminderPreference} minutes`}, at ${task.timeLabel}.`,
+            `Time for ${task.task}!`, 
+            `Hey! It's ${task.timeLabel}. Time to take care of ${activePet.name}.`,
             'info'
           );
           localStorage.setItem(notificationKey, 'true');
         }
       }
     });
-  }, [currentTime, todayKey, activePet, addNotification]);
+  }, [currentHour, todayKey, activePet, addNotification]);
 
   const saveStat = () => {
     if (editingStat === 'appointments') {

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { 
   Send, 
@@ -33,7 +34,6 @@ const Chat: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const profilesCacheRef = useRef<Record<string, any>>({});
 
   useEffect(() => {
     if (!user) return;
@@ -44,46 +44,32 @@ const Chat: React.FC = () => {
       orderBy("lastTimestamp", "desc")
     );
 
-    const unsubscribe = onSnapshot(q, async (snapshot) => {
-      const userIdsToFetch = new Set<string>();
-      snapshot.docs.forEach((d) => {
-        const otherId = d.data().participants.find((p: string) => p !== user.uid);
-        if (otherId && !profilesCacheRef.current[otherId]) {
-          userIdsToFetch.add(otherId);
-        }
-      });
+    // Fix: Refactored the async onSnapshot callback into a stable function to fix scoping and syntax errors.
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const updateSessionsList = async () => {
+        const sessionData = await Promise.all(snapshot.docs.map(async (d) => {
+          const data = d.data();
+          const otherId = data.participants.find((p: string) => p !== user.uid);
+          const userDoc = await getDoc(doc(db, "users", otherId));
+          const userData = userDoc.data();
 
-      if (userIdsToFetch.size > 0) {
-        const fetchedUsers = await Promise.all(
-          Array.from(userIdsToFetch).map(async (id) => {
-            const userDoc = await getDoc(doc(db, "users", id));
-            return { id, data: userDoc.data() };
-          })
-        );
-        fetchedUsers.forEach(u => {
-          if (u.data) profilesCacheRef.current[u.id] = u.data;
-        });
-      }
-
-      const sessionData = snapshot.docs.map((d) => {
-        const data = d.data();
-        const otherId = data.participants.find((p: string) => p !== user.uid);
-        const userData = profilesCacheRef.current[otherId!];
-        return {
-          id: d.id,
-          ...data,
-          otherUser: {
-            uid: otherId,
-            displayName: userData?.displayName || 'User',
-            photoURL: userData?.photoURL || '',
-            phoneNumber: userData?.phoneNumber || '',
-            username: userData?.username || ''
-          }
-        } as ChatSession;
-      });
-
-      setSessions(sessionData);
-      setLoading(false);
+          return {
+            id: d.id,
+            ...data,
+            otherUser: {
+              uid: otherId,
+              displayName: userData?.displayName || 'Unknown User',
+              photoURL: userData?.photoURL || '',
+              phoneNumber: userData?.phoneNumber || '',
+              username: userData?.username || ''
+            }
+          } as ChatSession;
+        }));
+        setSessions(sessionData);
+        setLoading(false);
+      };
+      
+      updateSessionsList();
     });
 
     return () => unsubscribe();

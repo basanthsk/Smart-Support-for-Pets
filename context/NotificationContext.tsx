@@ -2,8 +2,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { useAuth } from './AuthContext';
 import { PetProfile } from '../types';
-import { db } from '../services/firebase';
-import { collection, query, onSnapshot, doc, deleteDoc, orderBy } from "firebase/firestore";
 
 export interface AppNotification {
   id: string;
@@ -28,7 +26,6 @@ const NotificationContext = createContext<NotificationContextType | undefined>(u
 
 export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user } = useAuth();
-  const [dbUser, setDbUser] = useState<any>(null);
   const [permissionStatus, setPermissionStatus] = useState<NotificationPermission>(
     'Notification' in window ? Notification.permission : 'denied'
   );
@@ -40,19 +37,6 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
   });
 
   const unreadCount = notifications.filter(n => !n.read).length;
-  
-  useEffect(() => {
-    if (!user) {
-      setDbUser(null);
-      return;
-    }
-    const unsub = onSnapshot(doc(db, "users", user.uid), (doc) => {
-      if (doc.exists()) {
-        setDbUser(doc.data());
-      }
-    });
-    return () => unsub();
-  }, [user]);
 
   useEffect(() => {
     if (user) {
@@ -104,72 +88,39 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
   const clearAll = () => {
     setNotifications([]);
   };
-  
-  // Listener for Firestore-based notifications
-  useEffect(() => {
-    if (!user) return;
-
-    const notificationsRef = collection(db, "users", user.uid, "notifications");
-    const q = query(notificationsRef, orderBy("timestamp", "asc"));
-
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-        snapshot.docChanges().forEach(async (change) => {
-            if (change.type === "added") {
-                const notifData = change.doc.data();
-                addNotification(
-                    notifData.title,
-                    notifData.message,
-                    notifData.type as AppNotification['type']
-                );
-                // Delete the notification from Firestore after it has been processed
-                await deleteDoc(change.doc.ref);
-            }
-        });
-    });
-
-    return () => unsubscribe();
-  }, [user, addNotification]);
 
   useEffect(() => {
     if (!user) return;
 
     const checkReminders = () => {
-      const savedPetsJSON = localStorage.getItem(`ssp_pets_${user.uid}`);
-      if (!savedPetsJSON) return;
-      
-      try {
-        const pets: PetProfile[] = JSON.parse(savedPetsJSON);
-        if (!Array.isArray(pets) || pets.length === 0) return;
+      const savedPet = localStorage.getItem(`pet_${user.uid}`);
+      if (!savedPet) return;
+      const pet: PetProfile = JSON.parse(savedPet);
+
+      pet.vaccinations?.forEach(v => {
+        if (!v.nextDueDate) return;
+        const dueDate = new Date(v.nextDueDate);
+        const today = new Date();
+        const diffDays = Math.ceil((dueDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
         
-        const pet = pets[0]; // Use the primary pet for these reminders
-
-        pet.vaccinations?.forEach(v => {
-          if (!v.nextDueDate) return;
-          const dueDate = new Date(v.nextDueDate);
-          const today = new Date();
-          const diffDays = Math.ceil((dueDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
-          
-          if (diffDays <= 7 && diffDays > 0) {
-            const alreadyNotified = notifications.some(n => n.message.includes(v.name) && n.timestamp.startsWith(today.toISOString().split('T')[0]));
-            if (!alreadyNotified && localStorage.getItem('ssp_pref_vaccines') !== 'false') {
-              addNotification('Vaccination Reminder', `${pet.name}'s ${v.name} booster is due in ${diffDays} days!`, 'warning');
-            }
-          }
-        });
-
-        if (pet.weightHistory?.length > 0 && localStorage.getItem('ssp_pref_weight') !== 'false') {
-          const lastLog = new Date(pet.weightHistory[pet.weightHistory.length - 1].date);
-          const today = new Date();
-          const diffDays = Math.ceil((today.getTime() - lastLog.getTime()) / (1000 * 60 * 60 * 24));
-          if (diffDays >= 30) {
-            const alreadyNotified = notifications.some(n => n.title === 'Weight Check' && n.timestamp.startsWith(today.toISOString().split('T')[0]));
-            if (!alreadyNotified) {
-              addNotification('Weight Check', `It's been a month since ${pet.name}'s last weight log.`, 'info');
-            }
+        if (diffDays <= 7 && diffDays > 0) {
+          const alreadyNotified = notifications.some(n => n.message.includes(v.name) && n.timestamp.startsWith(today.toISOString().split('T')[0]));
+          if (!alreadyNotified && localStorage.getItem('ssp_pref_vaccines') !== 'false') {
+            addNotification('Vaccination Reminder', `${pet.name}'s ${v.name} booster is due in ${diffDays} days!`, 'warning');
           }
         }
-      } catch (e) {
-        console.error("Failed to parse pet data for reminders", e);
+      });
+
+      if (pet.weightHistory?.length > 0 && localStorage.getItem('ssp_pref_weight') !== 'false') {
+        const lastLog = new Date(pet.weightHistory[pet.weightHistory.length - 1].date);
+        const today = new Date();
+        const diffDays = Math.ceil((today.getTime() - lastLog.getTime()) / (1000 * 60 * 60 * 24));
+        if (diffDays >= 30) {
+          const alreadyNotified = notifications.some(n => n.title === 'Weight Check' && n.timestamp.startsWith(today.toISOString().split('T')[0]));
+          if (!alreadyNotified) {
+            addNotification('Weight Check', `It's been a month since ${pet.name}'s last weight log.`, 'info');
+          }
+        }
       }
     };
 
@@ -177,26 +128,6 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
     checkReminders();
     return () => clearInterval(interval);
   }, [user, addNotification, notifications]);
-  
-  useEffect(() => {
-    if (!dbUser || (dbUser && dbUser.phoneNumber)) {
-        return; 
-    }
-    
-    const intervalId = setInterval(() => {
-        addNotification(
-            "Complete Your Profile",
-            "Please add a phone number in your settings to ensure you can be contacted if your pet is found.",
-            "warning"
-        );
-    }, 10 * 60 * 1000); // every 10 minutes
-
-    return () => {
-        clearInterval(intervalId);
-    };
-
-  }, [dbUser, addNotification]);
-
 
   return (
     <NotificationContext.Provider value={{ notifications, unreadCount, permissionStatus, addNotification, markAsRead, clearAll, requestPermission }}>

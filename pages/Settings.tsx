@@ -11,13 +11,11 @@ import {
   AtSign, 
   Phone, 
   Palette,
-  Plus,
-  Check,
-  Bell
+  Plus
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useNotifications } from '../context/NotificationContext';
-import { db, updateUserProfile, isUsernameTaken } from '../services/firebase';
+import { db, updateUserProfile } from '../services/firebase';
 import { doc, getDoc } from "firebase/firestore";
 
 const THEME_PRESETS = [
@@ -27,10 +25,8 @@ const THEME_PRESETS = [
   { name: 'Amber', color: '#f59e0b' },
   { name: 'Violet', color: '#7c3aed' },
   { name: 'Sky', color: '#0ea5e9' },
-  { name: 'Sunset', color: '#f97316' },
+  { name: 'Midnight', color: '#0f172a' },
 ];
-
-const REMINDER_OPTIONS = [10, 20, 30, 40, 50, 60];
 
 const Settings: React.FC = () => {
   const { user } = useAuth();
@@ -41,15 +37,7 @@ const Settings: React.FC = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [currentTheme, setCurrentTheme] = useState(() => localStorage.getItem('ssp_theme_color') || '#4f46e5');
-  const [reminderPref, setReminderPref] = useState(() => {
-    const saved = localStorage.getItem('ssp_reminder_preference');
-    return saved ? parseInt(saved, 10) : 10;
-  });
   
-  // Username Validation States
-  const [isValidatingUsername, setIsValidatingUsername] = useState(false);
-  const [usernameTakenStatus, setUsernameTakenStatus] = useState<'available' | 'taken' | 'none'>('none');
-
   const [editData, setEditData] = useState({
     displayName: user?.displayName || '',
     username: '',
@@ -79,49 +67,14 @@ const Settings: React.FC = () => {
     fetchUserData();
   }, [user]);
 
-  // Debounced Username Validation
-  useEffect(() => {
-    if (!isEditing || !editData.username || editData.username === dbUser?.username) {
-      setIsValidatingUsername(false);
-      setUsernameTakenStatus('none');
-      return;
-    }
-
-    const handler = setTimeout(async () => {
-      setIsValidatingUsername(true);
-      try {
-        const taken = await isUsernameTaken(editData.username, user?.uid || '');
-        setUsernameTakenStatus(taken ? 'taken' : 'available');
-      } catch (err) {
-        console.error("Validation error:", err);
-      } finally {
-        setIsValidatingUsername(false);
-      }
-    }, 600);
-
-    return () => clearTimeout(handler);
-  }, [editData.username, isEditing, dbUser?.username, user?.uid]);
-
   const changeTheme = (color: string) => {
     setCurrentTheme(color);
-    const root = document.documentElement;
-    root.style.setProperty('--theme-color', color);
-    root.style.setProperty('--theme-color-hover', color + 'dd'); 
-    root.style.setProperty('--theme-color-light', color + '15');
-    root.style.setProperty('--theme-surface', color);
     localStorage.setItem('ssp_theme_color', color);
-    localStorage.setItem('ssp_theme_surface', color);
-    addNotification('Primary Color Updated', 'Branding preferences updated.', 'success');
-  };
-  
-  const handleReminderChange = (minutes: number) => {
-    setReminderPref(minutes);
-    localStorage.setItem('ssp_reminder_preference', String(minutes));
-    addNotification('Reminder Time Updated', `You'll now be notified ${minutes < 60 ? `${minutes} minutes` : '1 hour'} before tasks.`, 'success');
+    addNotification('Theme Updated', 'Your visual preferences have been applied.', 'success');
   };
 
   const handleSaveProfile = async () => {
-    if (!user || usernameTakenStatus === 'taken' || isValidatingUsername) return;
+    if (!user) return;
     
     setIsSaving(true);
     setSaveStatus(null);
@@ -142,10 +95,10 @@ const Settings: React.FC = () => {
       
       setSaveStatus({ message: 'Profile updated successfully!', type: 'success' });
       setIsEditing(false);
-      setUsernameTakenStatus('none');
       addNotification('Profile Updated', 'Identity synced successfully.', 'success');
     } catch (error: any) {
       console.error("Profile update failed:", error);
+      // Enhanced error handling for unique username
       const msg = error.message?.includes("taken") ? "That username is already taken. Please try another." : (error.message || 'Update failed.');
       setSaveStatus({ message: msg, type: 'error' });
     } finally {
@@ -155,8 +108,6 @@ const Settings: React.FC = () => {
       }
     }
   };
-
-  const isSaveDisabled = isSaving || isValidatingUsername || usernameTakenStatus === 'taken' || !editData.username.trim();
 
   return (
     <div className="max-w-4xl mx-auto pb-32 space-y-12 animate-fade-in">
@@ -177,7 +128,6 @@ const Settings: React.FC = () => {
       </div>
 
       <div className="space-y-10">
-        {/* Profile Card */}
         <div className="bg-white rounded-[4rem] p-10 md:p-20 border border-slate-50 shadow-2xl space-y-16 relative overflow-hidden transition-all duration-700">
           <div className="flex flex-col lg:flex-row items-center justify-center lg:items-start gap-16 lg:gap-24">
             
@@ -211,6 +161,7 @@ const Settings: React.FC = () => {
             {/* Fields Area */}
             <div className="flex-1 w-full max-w-xl space-y-12">
               <div className="space-y-10">
+                {/* Full Name */}
                 <div className="space-y-3">
                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-2">Full Name</label>
                   <input 
@@ -224,6 +175,7 @@ const Settings: React.FC = () => {
                   />
                 </div>
 
+                {/* Unique Handle (Editable) */}
                 <div className="space-y-3">
                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-2">Unique Handle</label>
                   <div className="relative">
@@ -235,37 +187,14 @@ const Settings: React.FC = () => {
                       value={isEditing ? editData.username : (dbUser?.username || '')}
                       onChange={(e) => setEditData({...editData, username: e.target.value.toLowerCase().replace(/\s/g, '')})}
                       placeholder="username"
-                      className={`w-full p-6 pl-14 pr-14 rounded-[1.5rem] text-lg font-bold text-slate-800 outline-none transition-all ${
+                      className={`w-full p-6 pl-14 rounded-[1.5rem] text-lg font-bold text-slate-800 outline-none transition-all ${
                         isEditing ? 'bg-slate-50 border border-slate-200 focus:bg-white focus:ring-4 ring-theme/10' : 'bg-slate-50/50 border-transparent cursor-default'
-                      } ${usernameTakenStatus === 'taken' ? 'border-rose-300 bg-rose-50/30' : ''}`}
+                      }`}
                     />
-                    
-                    {isEditing && (
-                      <div className="absolute right-6 top-1/2 -translate-y-1/2">
-                        {isValidatingUsername ? (
-                          <Loader2 size={20} className="animate-spin text-theme opacity-50" />
-                        ) : usernameTakenStatus === 'available' ? (
-                          <CheckCircle2 size={20} className="text-emerald-500 animate-in zoom-in" />
-                        ) : usernameTakenStatus === 'taken' ? (
-                          <AlertCircle size={20} className="text-rose-500 animate-in zoom-in" />
-                        ) : null}
-                      </div>
-                    )}
                   </div>
-                  
-                  {isEditing && (
-                    <div className="px-2 min-h-[20px] transition-all">
-                      {isValidatingUsername ? (
-                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 animate-pulse">Checking handle availability...</p>
-                      ) : usernameTakenStatus === 'available' ? (
-                        <p className="text-[10px] font-black uppercase tracking-widest text-emerald-500">This handle is available</p>
-                      ) : usernameTakenStatus === 'taken' ? (
-                        <p className="text-[10px] font-black uppercase tracking-widest text-rose-500">That handle is already taken. Please try another.</p>
-                      ) : null}
-                    </div>
-                  )}
                 </div>
 
+                {/* Phone Number - Enhanced Placeholder & Handling */}
                 <div className="space-y-3">
                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-2">Phone Number</label>
                   <div className="relative">
@@ -285,26 +214,19 @@ const Settings: React.FC = () => {
                 </div>
               </div>
 
+              {/* Capsule Action Buttons */}
               {isEditing && (
                 <div className="flex flex-col sm:flex-row gap-4 pt-4 animate-in slide-in-from-bottom-4 duration-500">
                   <button 
                     onClick={handleSaveProfile}
-                    disabled={isSaveDisabled}
-                    className="flex-[2] bg-theme text-white py-6 rounded-full font-black text-xl bg-theme-hover transition-all shadow-[0_20px_40px_-10px_rgba(79,70,229,0.3)] active:scale-95 disabled:opacity-50 disabled:shadow-none disabled:bg-slate-300 flex items-center justify-center gap-3"
+                    disabled={isSaving}
+                    className="flex-[2] bg-theme text-white py-6 rounded-full font-black text-xl bg-theme-hover transition-all shadow-[0_20px_40px_-10px_rgba(79,70,229,0.3)] active:scale-95 disabled:opacity-50 flex items-center justify-center gap-3"
                   >
                     {isSaving ? <Loader2 size={24} className="animate-spin" /> : <Save size={24} />}
                     {isSaving ? 'Saving...' : 'Save Changes'}
                   </button>
                   <button 
-                    onClick={() => {
-                      setIsEditing(false);
-                      setUsernameTakenStatus('none');
-                      setEditData({
-                        displayName: dbUser?.displayName || user?.displayName || '',
-                        username: dbUser?.username || '',
-                        phoneNumber: dbUser?.phoneNumber || ''
-                      });
-                    }}
+                    onClick={() => setIsEditing(false)}
                     disabled={isSaving}
                     className="flex-1 bg-slate-100 text-slate-500 py-6 rounded-full font-black text-xl hover:bg-slate-200 transition-all active:scale-95"
                   >
@@ -316,43 +238,15 @@ const Settings: React.FC = () => {
           </div>
         </div>
 
-        {/* Reminders */}
-        <div className="bg-white rounded-[3.5rem] p-10 md:p-14 border border-slate-100 shadow-sm space-y-12">
-          <div className="flex items-center gap-5">
-            <div className="p-4 bg-theme-light text-theme rounded-[2rem] transition-theme shadow-sm">
-              <Bell size={28} />
-            </div>
-            <div>
-              <h3 className="text-3xl font-black text-slate-900 tracking-tight">Task Reminders</h3>
-              <p className="text-slate-500 font-medium">Set how far in advance you get task notifications.</p>
-            </div>
-          </div>
-          <div className="flex flex-wrap gap-4 justify-center md:justify-start">
-            {REMINDER_OPTIONS.map((minutes) => (
-              <button
-                key={minutes}
-                onClick={() => handleReminderChange(minutes)}
-                className={`px-6 py-4 rounded-2xl font-black text-sm transition-all border-2 ${
-                  reminderPref === minutes
-                    ? 'bg-theme-light border-theme text-theme shadow-lg'
-                    : 'bg-slate-50 border-transparent text-slate-500 hover:border-slate-200'
-                }`}
-              >
-                Before {minutes < 60 ? `${minutes} min` : '1 hour'}
-              </button>
-            ))}
-          </div>
-        </div>
-        
         {/* Theme Picker */}
-        <div className="bg-white rounded-[3.5rem] p-10 md:p-14 border border-slate-100 shadow-sm space-y-12">
+        <div className="bg-white rounded-[3.5rem] p-10 md:p-14 border border-slate-100 shadow-sm space-y-10">
           <div className="flex items-center gap-5">
             <div className="p-4 bg-theme-light text-theme rounded-[2rem] transition-theme shadow-sm">
               <Palette size={28} />
             </div>
             <div>
-              <h3 className="text-3xl font-black text-slate-900 tracking-tight">Primary Brand Color</h3>
-              <p className="text-slate-500 font-medium">Customize your primary workspace accent.</p>
+              <h3 className="text-3xl font-black text-slate-900 tracking-tight">App Personalization</h3>
+              <p className="text-slate-500 font-medium">Customize your primary workspace theme.</p>
             </div>
           </div>
 
@@ -371,7 +265,7 @@ const Settings: React.FC = () => {
                   }`}
                   style={{ backgroundColor: theme.color }}
                 >
-                  {currentTheme === theme.color && <Check size={32} className="text-white animate-in zoom-in" />}
+                  {currentTheme === theme.color && <CheckCircle2 size={32} className="text-white animate-in zoom-in" />}
                 </div>
                 <span className={`text-[10px] font-black uppercase tracking-widest ${
                   currentTheme === theme.color ? 'text-theme' : 'text-slate-400'
