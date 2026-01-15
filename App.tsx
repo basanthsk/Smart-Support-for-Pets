@@ -309,12 +309,15 @@ const PetProfilePage: React.FC = () => {
   };
 
   const identifyPet = async (petId: string) => {
+    if (!petId) return;
+    const normalizedId = petId.trim().toUpperCase();
+
     setIsScanning(true);
     setScannedPet(null);
     setNotificationSent(false);
     setPermissionRequested(false);
     try {
-      const petData = await getPetById(petId);
+      const petData = await getPetById(normalizedId);
       if (petData) {
         setScannedPet(petData);
         // Automatically send a "scan detected" message to the owner
@@ -363,7 +366,7 @@ const PetProfilePage: React.FC = () => {
     const ownerInitial = user.displayName?.charAt(0).toUpperCase() || 'X';
     const petInitial = newPet.name?.charAt(0).toUpperCase() || 'X';
     const birthDate = newPet.birthday?.replace(/-/g, '') || '00000000';
-    const uniqueSuffix = user.uid.slice(0, 4);
+    const uniqueSuffix = user.uid.slice(0, 4).toUpperCase();
     const id = `${ownerInitial}${petInitial}${birthDate}-${uniqueSuffix}`;
     
     const { years, months } = calculateAge(newPet.birthday || '');
