@@ -4,15 +4,13 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { 
   Home, 
   MessageSquare, 
-  PlusSquare, 
-  Dog, 
   LogOut, 
   X,
   ChevronLeft,
   ChevronRight,
   Stethoscope,
+  Dog,
   Settings,
-  Sparkles,
   Send,
   User as UserIcon,
   LayoutGrid,
@@ -29,6 +27,53 @@ interface SidebarProps {
   isCollapsed: boolean;
   setIsCollapsed: (collapsed: boolean) => void;
 }
+
+const NavItem: React.FC<{
+  item: { label: string; path: string; icon: React.ElementType };
+  isActive: boolean;
+  isCollapsed: boolean;
+  setIsOpen: (open: boolean) => void;
+}> = ({ item, isActive, isCollapsed, setIsOpen }) => {
+  return (
+    <div className="relative">
+      <Link
+        to={item.path}
+        onClick={() => setIsOpen(false)}
+        className={`
+          group flex items-center gap-4 px-4 py-3 rounded-xl transition-all duration-200 w-full
+          ${isActive 
+            ? 'bg-theme text-white shadow-lg shadow-theme/20' 
+            : 'text-slate-500 hover:bg-slate-100 hover:text-slate-900'}
+          ${isCollapsed ? 'justify-center' : ''}
+        `}
+      >
+        <div className={`
+          absolute left-0 top-1/2 -translate-y-1/2 h-6 w-1 bg-white rounded-r-full
+          transition-all duration-300
+          ${isActive ? 'opacity-100' : 'opacity-0 group-hover:opacity-50'}
+        `}></div>
+        
+        <item.icon size={20} strokeWidth={isActive ? 2.5 : 2} className="shrink-0 z-10" />
+        
+        {!isCollapsed && (
+          <span className="text-sm font-bold tracking-tight whitespace-nowrap z-10">{item.label}</span>
+        )}
+      </Link>
+      
+      {isCollapsed && (
+        <div className="
+          absolute left-full top-1/2 -translate-y-1/2 ml-4 px-3 py-1.5
+          bg-slate-800 text-white text-xs font-bold rounded-lg shadow-lg
+          opacity-0 group-hover:opacity-100 transition-opacity duration-200 delay-300
+          pointer-events-none whitespace-nowrap z-50
+        ">
+          {item.label}
+          <div className="absolute top-1/2 -left-1 -translate-y-1/2 w-2 h-2 bg-slate-800 rotate-45"></div>
+        </div>
+      )}
+    </div>
+  );
+};
 
 const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen, isCollapsed, setIsCollapsed }) => {
   const location = useLocation();
@@ -55,7 +100,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen, isCollapsed, setIs
     {
       title: "Management",
       items: [
-        { label: 'Medical History', path: AppRoutes.PET_PROFILE, icon: Stethoscope },
+        { label: 'Medical History', path: AppRoutes.HEALTH_CHECKUP, icon: Stethoscope },
         { label: 'Profiles', path: AppRoutes.PET_PROFILE, icon: Dog },
       ]
     }
@@ -76,24 +121,24 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen, isCollapsed, setIs
     <>
       {/* Mobile Backdrop */}
       <div 
-        className={`fixed inset-0 bg-slate-900/40 backdrop-blur-[2px] z-[60] md:hidden transition-opacity duration-300 ${isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
+        className={`fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[60] md:hidden transition-opacity duration-300 ${isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
         onClick={() => setIsOpen(false)}
       />
 
       {/* Sidebar Main */}
       <aside className={`
-        fixed inset-y-0 left-0 z-[70] bg-white border-r border-slate-200 
+        fixed inset-y-0 left-0 z-[70] bg-white border-r border-slate-100 
         transform transition-all duration-300 ease-in-out
         md:relative md:translate-x-0
         ${isOpen ? 'translate-x-0' : '-translate-x-full'}
-        ${isCollapsed ? 'md:w-20' : 'md:w-64 lg:w-72'}
+        ${isCollapsed ? 'md:w-24' : 'md:w-64 lg:w-72'}
         flex flex-col
       `}>
         
         {/* Header/Logo */}
-        <div className="h-20 flex items-center px-5 mb-4 shrink-0">
+        <div className={`h-20 flex items-center shrink-0 ${isCollapsed ? 'justify-center' : 'px-6'}`}>
           <Link to={AppRoutes.HOME} className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-slate-50 rounded-xl p-1.5 border border-slate-100 flex-shrink-0 shadow-sm">
+            <div className="w-10 h-10 bg-white rounded-xl p-1.5 border border-slate-200 flex-shrink-0 shadow-sm">
               <img src={LOGO_URL} alt="Logo" className="w-full h-full object-contain" />
             </div>
             {!isCollapsed && (
@@ -108,78 +153,84 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen, isCollapsed, setIs
         </div>
 
         {/* Navigation Section */}
-        <nav className="flex-1 px-3 space-y-8 overflow-y-auto custom-scrollbar-hide">
+        <nav className="flex-1 px-4 space-y-2 overflow-y-auto custom-scrollbar-hide">
           {menuGroups.map((group, idx) => (
-            <div key={idx} className="space-y-1">
-              {!isCollapsed && (
-                <h3 className="px-3 text-[10px] font-bold uppercase tracking-[0.15em] text-slate-400 mb-2">
-                  {group.title}
-                </h3>
-              )}
-              {group.items.map((item) => {
-                const isActive = location.pathname === item.path;
-                return (
-                  <Link
+            <React.Fragment key={idx}>
+              {idx > 0 && <hr className={`border-slate-100 transition-all duration-300 ${isCollapsed ? 'mx-4 my-4' : 'mx-2 my-6'}`} />}
+              <div className="space-y-1">
+                {!isCollapsed && (
+                  <h3 className="px-4 pt-2 pb-1 text-[10px] font-bold uppercase tracking-[0.15em] text-slate-400">
+                    {group.title}
+                  </h3>
+                )}
+                {group.items.map((item) => (
+                  <NavItem 
                     key={item.path}
-                    to={item.path}
-                    onClick={() => setIsOpen(false)}
-                    className={`
-                      group flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200
-                      ${isActive 
-                        ? 'bg-theme text-white shadow-md shadow-theme/10' 
-                        : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'}
-                      ${isCollapsed ? 'justify-center' : ''}
-                    `}
-                  >
-                    <item.icon size={20} strokeWidth={isActive ? 2.5 : 2} className="shrink-0" />
-                    {!isCollapsed && (
-                      <span className="text-sm font-semibold tracking-tight whitespace-nowrap">{item.label}</span>
-                    )}
-                  </Link>
-                );
-              })}
-            </div>
+                    item={item}
+                    isActive={location.pathname === item.path || (item.path === AppRoutes.PET_PROFILE && location.pathname === AppRoutes.HEALTH_CHECKUP)}
+                    isCollapsed={isCollapsed}
+                    setIsOpen={setIsOpen}
+                  />
+                ))}
+              </div>
+            </React.Fragment>
           ))}
         </nav>
 
         {/* Profile/Footer Section */}
-        <div className="p-3 mt-auto">
+        <div className="p-4 mt-auto">
           <div className="bg-slate-50 rounded-2xl p-2 space-y-1 border border-slate-100">
-            <Link 
-              to={AppRoutes.SETTINGS}
-              className={`flex items-center gap-3 p-2 rounded-xl hover:bg-white hover:shadow-sm transition-all group ${isCollapsed ? 'justify-center' : ''}`}
-            >
-              <div className="w-8 h-8 rounded-lg overflow-hidden border border-slate-200 shadow-sm shrink-0">
-                {user?.photoURL ? (
-                  <img src={user.photoURL} alt="User" className="w-full h-full object-cover" />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center bg-slate-100 text-slate-400"><UserIcon size={16} /></div>
+            <div className="relative group">
+              <Link 
+                to={AppRoutes.SETTINGS}
+                className={`flex items-center gap-3 p-2 rounded-xl hover:bg-white hover:shadow-sm transition-all ${isCollapsed ? 'justify-center' : ''}`}
+              >
+                <div className="w-9 h-9 rounded-lg overflow-hidden border-2 border-white shadow-sm shrink-0">
+                  {user?.photoURL ? (
+                    <img src={user.photoURL} alt="User" className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center bg-slate-100 text-slate-400"><UserIcon size={16} /></div>
+                  )}
+                </div>
+                {!isCollapsed && (
+                  <div className="min-w-0">
+                    <p className="text-xs font-bold text-slate-800 truncate leading-tight">{user?.displayName || 'Parent'}</p>
+                    <p className="text-[10px] text-slate-400 font-medium mt-0.5 truncate">Account Settings</p>
+                  </div>
                 )}
-              </div>
-              {!isCollapsed && (
-                <div className="min-w-0">
-                  <p className="text-xs font-bold text-slate-800 truncate leading-none">{user?.displayName || 'Parent'}</p>
-                  <p className="text-[10px] text-slate-400 font-medium mt-1 truncate">Settings</p>
+              </Link>
+              {isCollapsed && (
+                <div className="absolute left-full top-1/2 -translate-y-1/2 ml-4 px-3 py-1.5 bg-slate-800 text-white text-xs font-bold rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 delay-300 pointer-events-none z-50">
+                  Settings
+                  <div className="absolute top-1/2 -left-1 -translate-y-1/2 w-2 h-2 bg-slate-800 rotate-45"></div>
                 </div>
               )}
-            </Link>
+            </div>
 
-            <button
-              onClick={handleLogout}
-              className={`w-full flex items-center gap-3 p-2 rounded-xl text-slate-500 hover:text-rose-600 hover:bg-rose-50/50 transition-all ${isCollapsed ? 'justify-center' : ''}`}
-            >
-              <LogOut size={18} />
-              {!isCollapsed && <span className="text-xs font-bold">Sign Out</span>}
-            </button>
+            <div className="relative group">
+              <button
+                onClick={handleLogout}
+                className={`w-full flex items-center gap-3 p-2 rounded-xl text-slate-500 hover:text-rose-600 hover:bg-rose-50/50 transition-all ${isCollapsed ? 'justify-center' : ''}`}
+              >
+                <LogOut size={18} />
+                {!isCollapsed && <span className="text-xs font-bold">Sign Out</span>}
+              </button>
+              {isCollapsed && (
+                <div className="absolute left-full top-1/2 -translate-y-1/2 ml-4 px-3 py-1.5 bg-slate-800 text-white text-xs font-bold rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 delay-300 pointer-events-none z-50">
+                  Sign Out
+                  <div className="absolute top-1/2 -left-1 -translate-y-1/2 w-2 h-2 bg-slate-800 rotate-45"></div>
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
         {/* Desktop Collapse Toggle */}
         <button 
           onClick={() => setIsCollapsed(!isCollapsed)}
-          className="hidden md:flex absolute -right-3.5 top-20 w-7 h-7 bg-white border border-slate-200 rounded-full shadow-md items-center justify-center text-slate-400 hover:text-theme transition-all z-[80]"
+          className="hidden md:flex absolute -right-4 top-20 w-8 h-8 bg-white border border-slate-200 rounded-full shadow-lg items-center justify-center text-slate-400 hover:text-theme hover:scale-110 hover:shadow-xl transition-all z-[80] active:scale-95"
         >
-          {isCollapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
+          {isCollapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
         </button>
       </aside>
     </>
