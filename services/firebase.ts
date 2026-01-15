@@ -257,6 +257,21 @@ export const searchUsersByEmail = async (email: string, currentUserId: string) =
     .filter(user => user.id !== currentUserId);
 };
 
+export const searchUsersByUsername = async (usernamePrefix: string, currentUserId: string) => {
+  if (!usernamePrefix) return [];
+  const lowerPrefix = usernamePrefix.toLowerCase().trim();
+  const q = query(
+    collection(db, "users"),
+    where("username", ">=", lowerPrefix),
+    where("username", "<=", lowerPrefix + "\uf8ff"),
+    limit(10)
+  );
+  const querySnapshot = await getDocs(q);
+  return querySnapshot.docs
+    .map(doc => ({ id: doc.id, ...doc.data() }))
+    .filter((user: any) => user.id !== currentUserId);
+};
+
 export const followUser = async (currentUserId: string, targetUserId: string) => {
   const followingRef = doc(db, 'users', currentUserId, 'following', targetUserId);
   await setDoc(followingRef, { timestamp: serverTimestamp() });
