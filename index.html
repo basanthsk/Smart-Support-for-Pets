@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -80,12 +79,10 @@
         // Immediate Theme Application to prevent FOUC
         (function() {
             const savedTheme = localStorage.getItem('ssp_theme_color') || '#4f46e5';
-            const savedSurface = localStorage.getItem('ssp_theme_surface') || '#0f172a';
             const root = document.documentElement;
             root.style.setProperty('--theme-color', savedTheme);
             root.style.setProperty('--theme-color-hover', savedTheme + 'dd'); 
             root.style.setProperty('--theme-color-light', savedTheme + '15');
-            root.style.setProperty('--theme-surface', savedSurface);
         })();
     </script>
 <script type="importmap">
