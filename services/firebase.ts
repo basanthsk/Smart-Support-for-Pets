@@ -26,10 +26,9 @@ import {
   addDoc, 
   serverTimestamp, 
   onSnapshot,
-  deleteDoc,
-  increment
+  deleteDoc
 } from "firebase/firestore";
-import { User, PetProfile, PostComment } from '../types';
+import { User, PetProfile } from '../types';
 
 const firebaseConfig = {
   apiKey: "AIzaSyCVUMhFhDzfbvF-iXthH6StOlI6mJreTmA",
@@ -304,21 +303,6 @@ export const sendChatMessage = async (chatId: string, senderId: string, text: st
   const messagesRef = collection(chatRef, "messages");
   await addDoc(messagesRef, { senderId, text, timestamp: serverTimestamp() });
   await updateDoc(chatRef, { lastMessage: text, lastTimestamp: serverTimestamp() });
-};
-
-export const addPostComment = async (postId: string, user: any, text: string) => {
-  const postRef = doc(db, "posts", postId);
-  const commentsRef = collection(postRef, "comments");
-  await addDoc(commentsRef, {
-    userId: user.uid,
-    userName: user.displayName || 'Pet Parent',
-    userAvatar: user.photoURL || null,
-    text,
-    createdAt: serverTimestamp(),
-  });
-  await updateDoc(postRef, {
-    commentsCount: increment(1)
-  });
 };
 
 export { onAuthStateChanged };

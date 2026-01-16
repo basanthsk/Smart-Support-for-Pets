@@ -82,27 +82,3 @@ export interface ChatSession {
     username?: string;
   };
 }
-
-export interface PostComment {
-  id: string;
-  userId: string;
-  userName: string;
-  userAvatar: string | null;
-  text: string;
-  createdAt: any;
-}
-
-export interface Post {
-  id: string;
-  user: string;
-  avatar: string | null;
-  petName: string;
-  petType?: string;
-  content: string;
-  image: string;
-  likes: number;
-  commentsCount: number;
-  createdAt: any;
-  userId: string;
-  imageFilter?: string;
-}
