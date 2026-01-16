@@ -69,9 +69,9 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen, isCollapsed, setIs
 
   return (
     <>
-      {/* Mobile Overlay */}
+      {/* Mobile Overlay - Modern Glassmorphism */}
       <div 
-        className={`fixed inset-0 bg-slate-900/60 backdrop-blur-md z-[60] transition-all duration-500 md:hidden ${
+        className={`fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[60] transition-opacity duration-500 md:hidden ${
           isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
         }`}
         onClick={() => setIsOpen(false)}
@@ -85,13 +85,13 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen, isCollapsed, setIs
         md:relative md:translate-x-0
         ${isOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
         ${isCollapsed ? 'md:w-[90px]' : 'lg:w-[280px] md:w-[240px]'}
-        flex flex-col shadow-[20px_0_40px_-15px_rgba(0,0,0,0.05)] md:shadow-none
+        flex flex-col shadow-[20px_0_60px_-15px_rgba(0,0,0,0.03)] md:shadow-none
       `}>
         
-        {/* Header/Logo Area */}
+        {/* Header Area */}
         <div className="h-24 flex items-center px-6 shrink-0 border-b border-slate-50 overflow-hidden">
           <Link to={AppRoutes.HOME} className="flex items-center gap-4 group">
-            <div className="w-11 h-11 bg-white border border-slate-100 rounded-2xl p-2.5 flex items-center justify-center shrink-0 shadow-lg shadow-slate-200/50 transition-all duration-500 group-hover:scale-110 group-hover:rotate-6">
+            <div className="w-11 h-11 bg-white border border-slate-100 rounded-2xl p-2.5 flex items-center justify-center shrink-0 shadow-xl shadow-slate-200/50 transition-all duration-500 group-hover:scale-110 group-hover:rotate-6">
               <img src={LOGO_URL} alt="Logo" className="w-full h-full object-contain" />
             </div>
             {!isCollapsed && (
@@ -105,18 +105,18 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen, isCollapsed, setIs
           </Link>
           <button 
             onClick={() => setIsOpen(false)} 
-            className="md:hidden ml-auto w-10 h-10 flex items-center justify-center bg-slate-50 rounded-xl text-slate-400 hover:text-slate-900 transition-colors"
+            className="md:hidden ml-auto w-10 h-10 flex items-center justify-center bg-slate-50 rounded-xl text-slate-400 hover:text-slate-900 transition-all active:scale-90"
           >
             <X size={20} />
           </button>
         </div>
 
         {/* Navigation Section */}
-        <nav className="flex-1 px-4 py-8 space-y-9 overflow-y-auto custom-scrollbar">
+        <nav className="flex-1 px-4 py-8 space-y-9 overflow-y-auto scroll-hide">
           {menuGroups.map((group, gIdx) => (
-            <div key={gIdx} className="space-y-3">
+            <div key={gIdx} className="space-y-4">
               {!isCollapsed && (
-                <h3 className="px-5 text-[10px] font-black uppercase tracking-[0.3em] text-slate-400">
+                <h3 className="px-5 text-[10px] font-black uppercase tracking-[0.3em] text-slate-400/80">
                   {group.title}
                 </h3>
               )}
@@ -131,21 +131,21 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen, isCollapsed, setIs
                       className={`
                         group relative flex items-center gap-4 px-5 py-4 rounded-2xl transition-all duration-300
                         ${isActive 
-                          ? 'bg-slate-900 text-white shadow-xl shadow-slate-200' 
+                          ? 'bg-slate-900 text-white shadow-[0_10px_30px_-10px_rgba(15,23,42,0.3)]' 
                           : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'}
                       `}
                     >
-                      <item.icon size={20} className={`shrink-0 transition-transform duration-300 group-hover:scale-110 ${isActive ? 'text-theme' : ''}`} />
+                      <item.icon size={20} className={`shrink-0 transition-transform duration-300 group-hover:scale-110 ${isActive ? 'text-theme drop-shadow-[0_0_8px_rgba(79,70,229,0.5)]' : ''}`} />
                       {!isCollapsed && (
                         <span className="text-sm font-bold tracking-tight">{item.label}</span>
                       )}
                       {isActive && !isCollapsed && (
-                        <div className="ml-auto w-1.5 h-1.5 rounded-full bg-theme animate-pulse" />
+                        <div className="ml-auto w-1.5 h-1.5 rounded-full bg-theme shadow-[0_0_10px_#4f46e5] animate-pulse" />
                       )}
                       
                       {/* Tooltip for Collapsed State */}
                       {isCollapsed && (
-                        <div className="absolute left-[calc(100%+12px)] px-3 py-2 bg-slate-900 text-white text-[11px] font-bold rounded-xl opacity-0 translate-x-[-10px] pointer-events-none group-hover:opacity-100 group-hover:translate-x-0 transition-all z-[80] whitespace-nowrap shadow-2xl">
+                        <div className="absolute left-[calc(100%+16px)] px-3 py-2 bg-slate-900 text-white text-[11px] font-bold rounded-xl opacity-0 translate-x-[-10px] pointer-events-none group-hover:opacity-100 group-hover:translate-x-0 transition-all z-[80] whitespace-nowrap shadow-2xl">
                           {item.label}
                           <div className="absolute left-[-4px] top-1/2 -translate-y-1/2 w-2 h-2 bg-slate-900 rotate-45" />
                         </div>
@@ -162,7 +162,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen, isCollapsed, setIs
         <div className="p-4 border-t border-slate-50 space-y-3">
           {!isCollapsed && (
             <Link to={AppRoutes.SETTINGS} className="flex items-center gap-4 p-3 rounded-2xl hover:bg-slate-50 transition-all group">
-              <div className="w-10 h-10 rounded-xl overflow-hidden bg-slate-100 border border-slate-200 shrink-0 shadow-sm">
+              <div className="w-10 h-10 rounded-xl overflow-hidden bg-slate-100 border border-slate-200 shrink-0 shadow-sm transition-transform group-hover:scale-105">
                 {user?.photoURL ? (
                   <img src={user.photoURL} className="w-full h-full object-cover" />
                 ) : (
@@ -170,7 +170,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen, isCollapsed, setIs
                 )}
               </div>
               <div className="min-w-0">
-                <p className="text-xs font-black text-slate-900 truncate">Settings</p>
+                <p className="text-xs font-black text-slate-900 truncate group-hover:text-theme transition-colors">Settings</p>
                 <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest truncate">Profile Info</p>
               </div>
             </Link>
@@ -180,7 +180,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen, isCollapsed, setIs
             onClick={handleLogout}
             className={`w-full flex items-center gap-4 p-4 rounded-2xl transition-all text-slate-400 hover:text-rose-500 hover:bg-rose-50/50 ${isCollapsed ? 'justify-center' : ''}`}
           >
-            <LogOut size={20} className="shrink-0" />
+            <LogOut size={20} className="shrink-0 transition-transform group-hover:rotate-12" />
             {!isCollapsed && <span className="text-xs font-black uppercase tracking-[0.2em]">Sign Out</span>}
           </button>
         </div>

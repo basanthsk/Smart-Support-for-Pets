@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useMemo, useRef, lazy, Suspense } from 'react';
 import { HashRouter as Router, Routes, Route, Navigate, useParams, useNavigate } from "react-router-dom";
 import Layout from './components/Layout';
@@ -54,8 +53,6 @@ const PageLoader = () => (
   </div>
 );
 
-// Interface definition to fix TypeScript errors during build
-// Moved inside declare global to avoid type mismatch issues with global scope
 declare global {
   interface AIStudio {
     hasSelectedApiKey: () => Promise<boolean>;
@@ -156,10 +153,13 @@ const PetProfilePage: React.FC = () => {
   const generateAIAvatar = async (base64Source?: string) => {
     if (!selectedPet) return;
     
-    const hasKey = await window.aistudio?.hasSelectedApiKey();
-    if (!hasKey) { 
-      setShowKeyPrompt(true); 
-      return; 
+    // Check if we need to select a key (only for specific hosted environments)
+    if (window.aistudio) {
+      const hasKey = await window.aistudio.hasSelectedApiKey();
+      if (!hasKey) { 
+        setShowKeyPrompt(true); 
+        return; 
+      }
     }
 
     setIsGeneratingAvatar(true);
@@ -167,29 +167,50 @@ const PetProfilePage: React.FC = () => {
     
     try {
       const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-      const prompt = `A cinematic, ultra-high-quality professional studio avatar portrait of a ${selectedPet.breed} ${selectedPet.species} named ${selectedPet.name}. Detailed fur, vibrant lighting, 4K resolution.`;
-      const contents: any = { parts: [{ text: prompt }] };
+      const prompt = `A cinematic, ultra-high-quality professional studio avatar portrait of a ${selectedPet.breed} ${selectedPet.species} named ${selectedPet.name}. Detailed fur/feathers, vibrant lighting, 4K resolution, blurred background.`;
+      
+      const parts: any[] = [{ text: prompt }];
       if (base64Source) {
-        contents.parts.push({ inlineData: { data: base64Source.split(',')[1], mimeType: 'image/png' } });
+        parts.push({ inlineData: { data: base64Source.split(',')[1], mimeType: 'image/png' } });
       }
+
       const response = await ai.models.generateContent({ 
         model: 'gemini-3-pro-image-preview', 
-        contents, 
+        contents: { parts }, 
         config: { imageConfig: { aspectRatio: "1:1", imageSize: "1K" } } 
       });
-      for (const part of response.candidates[0].content.parts) {
-        if (part.inlineData) {
-          const avatarUrl = `data:image/png;base64,${part.inlineData.data}`;
-          const updatedPet = { ...selectedPet, avatarUrl };
-          const updatedPets = pets.map(p => p.id === selectedPet.id ? updatedPet : p);
-          await savePetsToStorage(updatedPets);
-          setSelectedPet(updatedPet);
-          break;
+
+      if (response.candidates?.[0]?.content?.parts) {
+        for (const part of response.candidates[0].content.parts) {
+          if (part.inlineData) {
+            const avatarUrl = `data:image/png;base64,${part.inlineData.data}`;
+            const updatedPet = { ...selectedPet, avatarUrl };
+            const updatedPets = pets.map(p => p.id === selectedPet.id ? updatedPet : p);
+            await savePetsToStorage(updatedPets);
+            setSelectedPet(updatedPet);
+            addNotification('AI Magic', 'Custom avatar generated!', 'success');
+            break;
+          }
         }
       }
     } catch (err: any) {
-      if (err.message?.includes("Requested entity was not found")) setShowKeyPrompt(true);
-    } finally { setIsGeneratingAvatar(false); }
+      console.error("AI Generation Error:", err);
+      if (err.message?.includes("Requested entity was not found")) {
+        if (window.aistudio) setShowKeyPrompt(true);
+      }
+      addNotification('Studio Error', 'Could not generate avatar. Check your credits.', 'error');
+    } finally { 
+      setIsGeneratingAvatar(false); 
+    }
+  };
+
+  const handleConnectKey = async () => {
+    if (window.aistudio) {
+      await window.aistudio.openSelectKey();
+      // Assume success and proceed immediately per requirements
+      setShowKeyPrompt(false);
+      generateAIAvatar();
+    }
   };
 
   const handleScanClick = () => {
@@ -343,13 +364,13 @@ const PetProfilePage: React.FC = () => {
                 )}
 
                 {showKeyPrompt && (
-                  <div className="absolute inset-0 bg-indigo-600/90 text-white flex flex-col items-center justify-center p-6 text-center animate-in zoom-in-95 duration-300 z-10">
-                    <Key size={32} className="mb-3 text-theme shadow-sm" />
+                  <div className="absolute inset-0 bg-slate-900/90 text-white flex flex-col items-center justify-center p-6 text-center animate-in zoom-in-95 duration-300 z-10 backdrop-blur-sm">
+                    <Key size={32} className="mb-3 text-theme" />
                     <h5 className="text-[10px] font-black uppercase tracking-[0.2em] mb-2">Connect Paid Key</h5>
-                    <p className="text-[9px] font-medium leading-relaxed mb-5 opacity-90">To generate high-quality AI avatars, please connect your Google Cloud API key.</p>
+                    <p className="text-[9px] font-medium leading-relaxed mb-5 opacity-70">Gemini 3 Pro requires a billing-enabled key for high-quality generation.</p>
                     <button 
-                      onClick={() => { window.aistudio?.openSelectKey(); setShowKeyPrompt(false); }}
-                      className="w-full bg-white text-indigo-600 py-3 rounded-xl font-black text-[9px] uppercase tracking-widest shadow-lg hover:bg-slate-50 transition-all active:scale-95"
+                      onClick={handleConnectKey}
+                      className="w-full bg-white text-slate-900 py-3 rounded-xl font-black text-[9px] uppercase tracking-widest shadow-lg hover:bg-slate-50 transition-all active:scale-95"
                     >
                       Connect Key
                     </button>
