@@ -12,7 +12,6 @@ import {
   CheckCircle2, 
   CircleDot,
   Trophy,
-  PartyPopper,
   Sparkles,
   ChevronDown,
   Edit2,
@@ -20,25 +19,9 @@ import {
   Save
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { useNotifications } from '../context/NotificationContext';
 import { Link } from "react-router-dom";
 import { AppRoutes, PetProfile } from '../types';
-
-interface RoutineTask {
-  id: string;
-  task: string;
-  startHour: number; // 0-23
-  endHour: number;   // 0-23
-  timeLabel: string;
-}
-
-const STAT_ROUTINE: RoutineTask[] = [
-  { id: 'morning_walk', task: 'Morning Walk', startHour: 7, endHour: 8, timeLabel: '07:00 - 08:00' },
-  { id: 'breakfast', task: 'Breakfast', startHour: 8, endHour: 9, timeLabel: '08:30 - 09:00' },
-  { id: 'midday_play', task: 'Mid-day Play', startHour: 12, endHour: 13, timeLabel: '12:00 - 13:00' },
-  { id: 'dinner', task: 'Dinner Time', startHour: 18, endHour: 19, timeLabel: '18:00 - 19:00' },
-  { id: 'night_walk', task: 'Night Walk', startHour: 21, endHour: 22, timeLabel: '21:00 - 22:00' },
-];
+import { STAT_ROUTINE } from '../context/NotificationContext';
 
 const StatCard: React.FC<{ 
   icon: React.ElementType, 
@@ -66,12 +49,10 @@ const StatCard: React.FC<{
 
 const Home: React.FC = () => {
   const { user } = useAuth();
-  const { addNotification } = useNotifications();
   const [pets, setPets] = useState<PetProfile[]>([]);
   const [activePet, setActivePet] = useState<PetProfile | null>(null);
   const [currentTime, setCurrentTime] = useState(new Date());
   
-  // Dashboard Editable Stats
   const [appointments, setAppointments] = useState(() => localStorage.getItem(`ssp_appointments_${user?.uid}`) || 'None');
   const [exercise, setExercise] = useState(() => localStorage.getItem(`ssp_exercise_${user?.uid}`) || '0');
   const [editingStat, setEditingStat] = useState<'appointments' | 'exercise' | null>(null);
@@ -85,7 +66,6 @@ const Home: React.FC = () => {
   }, []);
 
   const currentHour = currentTime.getHours();
-  const todayKey = currentTime.toISOString().split('T')[0];
 
   useEffect(() => {
     const saved = localStorage.getItem(`ssp_pets_${user?.uid}`);
@@ -95,26 +75,6 @@ const Home: React.FC = () => {
       if (parsed.length > 0) setActivePet(parsed[0]);
     }
   }, [user]);
-
-  useEffect(() => {
-    if (!activePet) return;
-
-    STAT_ROUTINE.forEach(task => {
-      if (currentHour === task.startHour) {
-        const notificationKey = `notified_${task.id}_${todayKey}_${activePet.id}`;
-        const alreadyNotified = localStorage.getItem(notificationKey);
-        
-        if (!alreadyNotified) {
-          addNotification(
-            `Time for ${task.task}!`, 
-            `Hey! It's ${task.timeLabel}. Time to take care of ${activePet.name}.`,
-            'info'
-          );
-          localStorage.setItem(notificationKey, 'true');
-        }
-      }
-    });
-  }, [currentHour, todayKey, activePet, addNotification]);
 
   const saveStat = () => {
     if (editingStat === 'appointments') {
@@ -131,7 +91,7 @@ const Home: React.FC = () => {
   const firstName = user?.displayName?.split(' ')[0] || 'Pet Lover';
   const hasPets = pets.length > 0;
 
-  const getTaskStatus = (task: RoutineTask) => {
+  const getTaskStatus = (task: any) => {
     if (currentHour >= task.endHour) return 'done';
     if (currentHour >= task.startHour && currentHour < task.endHour) return 'active';
     return 'pending';
@@ -229,7 +189,6 @@ const Home: React.FC = () => {
         <>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
             <StatCard icon={Heart} label="Recent Weight" value={activePet?.weightHistory?.[activePet.weightHistory.length - 1]?.weight ? `${activePet.weightHistory[activePet.weightHistory.length - 1].weight} kg` : '--'} color="bg-rose-500" />
-            
             <StatCard 
               icon={Calendar} 
               label="Appointments" 
@@ -237,7 +196,6 @@ const Home: React.FC = () => {
               color="bg-indigo-500" 
               onEdit={() => { setEditingStat('appointments'); setEditValue(appointments); }} 
             />
-            
             <StatCard 
               icon={Activity} 
               label="Exercise Today" 
@@ -245,11 +203,9 @@ const Home: React.FC = () => {
               color="bg-emerald-500" 
               onEdit={() => { setEditingStat('exercise'); setEditValue(exercise); }} 
             />
-            
             <StatCard icon={ShieldCheck} label="Pet Status" value="Active" color="bg-amber-500" />
           </div>
 
-          {/* Inline Edit Overlay Modal */}
           {editingStat && (
             <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[100] flex items-center justify-center p-6 animate-in fade-in duration-300">
                <div className="bg-white rounded-[2.5rem] p-10 max-w-md w-full shadow-2xl border border-slate-100 space-y-8 animate-in zoom-in-95 duration-300">
@@ -272,7 +228,7 @@ const Home: React.FC = () => {
                   </div>
                   <button 
                     onClick={saveStat}
-                    className="w-full py-5 bg-theme text-white rounded-[1.5rem] font-black text-lg flex items-center justify-center gap-3 hover:bg-theme-hover shadow-xl shadow-theme/10 transition-all active:scale-95"
+                    className="w-full py-5 bg-theme text-white rounded-[1.5rem] font-black text-lg flex items-center justify-center gap-3 hover:bg-theme-hover shadow-xl shadow-theme/10 transition-all active:scale-95 transition-theme"
                   >
                     <Save size={20} /> Update Stats
                   </button>

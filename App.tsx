@@ -6,6 +6,7 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import { NotificationProvider } from './context/NotificationContext';
 import { GoogleGenAI } from "@google/genai";
 import { syncPetToDb, getPetById } from './services/firebase';
+import jsQR from 'jsqr';
 import { 
   Dog, Plus, PawPrint, Weight, Palette, Fingerprint, 
   AlertCircle, Camera, Check, CheckCircle2, ChevronRight, Cat, Bird, Rabbit, 
@@ -112,12 +113,92 @@ const calculateAge = (birthday: string) => {
   return { years: Math.max(0, years), months: Math.max(0, months) };
 };
 
+const QRScanner: React.FC<{ onScan: (id: string) => void; onCancel: () => void }> = ({ onScan, onCancel }) => {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let stream: MediaStream | null = null;
+    let animationFrameId: number;
+
+    const startCamera = async () => {
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+          videoRef.current.setAttribute("playsinline", "true"); // required to tell iOS safari we don't want fullscreen
+          videoRef.current.play();
+          requestAnimationFrame(tick);
+        }
+      } catch (err) {
+        setError("Camera permission denied or not available.");
+      }
+    };
+
+    const tick = () => {
+      if (videoRef.current && videoRef.current.readyState === videoRef.current.HAVE_ENOUGH_DATA && canvasRef.current) {
+        const canvas = canvasRef.current;
+        const ctx = canvas.getContext("2d");
+        if (ctx) {
+          canvas.height = videoRef.current.videoHeight;
+          canvas.width = videoRef.current.videoWidth;
+          ctx.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
+          const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+          const code = jsQR(imageData.data, imageData.width, imageData.height, {
+            inversionAttempts: "dontInvert",
+          });
+          if (code) {
+            onScan(code.data);
+            return;
+          }
+        }
+      }
+      animationFrameId = requestAnimationFrame(tick);
+    };
+
+    startCamera();
+
+    return () => {
+      if (stream) {
+        stream.getTracks().forEach(track => track.stop());
+      }
+      cancelAnimationFrame(animationFrameId);
+    };
+  }, [onScan]);
+
+  return (
+    <div className="fixed inset-0 bg-black/90 z-[200] flex flex-col items-center justify-center p-6 backdrop-blur-xl">
+      <div className="w-full max-w-sm aspect-square relative rounded-[2.5rem] overflow-hidden border-4 border-white/20 shadow-2xl">
+        {error ? (
+          <div className="absolute inset-0 flex items-center justify-center text-white p-10 text-center font-bold">{error}</div>
+        ) : (
+          <>
+            <video ref={videoRef} className="w-full h-full object-cover" />
+            <div className="absolute inset-0 border-[40px] border-black/40 pointer-events-none">
+              <div className="w-full h-full border-2 border-theme animate-pulse"></div>
+            </div>
+            <div className="absolute top-0 left-0 w-full h-1 bg-theme shadow-[0_0_20px_var(--theme-color)] animate-scan-beam"></div>
+          </>
+        )}
+      </div>
+      <div className="mt-10 text-center space-y-4">
+        <h3 className="text-xl font-black text-white tracking-tight">Scan Pet QR Code</h3>
+        <p className="text-white/60 text-xs font-bold uppercase tracking-widest">Position the SSP ID QR in the frame</p>
+        <button onClick={onCancel} className="mt-6 px-10 py-4 bg-white/10 text-white rounded-2xl font-black text-xs uppercase tracking-[0.2em] hover:bg-white/20 transition-all">Close Scanner</button>
+      </div>
+      <canvas ref={canvasRef} className="hidden" />
+    </div>
+  );
+};
+
 const PetProfilePage: React.FC = () => {
   const { user } = useAuth();
   const [pets, setPets] = useState<PetProfile[]>([]);
   const [selectedPet, setSelectedPet] = useState<PetProfile | null>(null);
   const [isAdding, setIsAdding] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
+  const [isScanning, setIsScanning] = useState(false);
   const [isGeneratingAvatar, setIsGeneratingAvatar] = useState(false);
   const [isGeneratingHealthReport, setIsGeneratingHealthReport] = useState(false);
   const [healthReport, setHealthReport] = useState<string | null>(null);
@@ -163,8 +244,8 @@ const PetProfilePage: React.FC = () => {
     const ownerInitial = user.displayName?.charAt(0).toUpperCase() || 'X';
     const petInitial = newPet.name?.charAt(0).toUpperCase() || 'X';
     const birthDate = newPet.birthday?.replace(/-/g, '') || '00000000';
-    const uniqueSuffix = user.uid.slice(0, 4).toUpperCase();
-    const id = `${ownerInitial}${petInitial}${birthDate}-${uniqueSuffix}`;
+    // Format: SSP-OIPI-YYYYMMDD
+    const id = `SSP-${ownerInitial}${petInitial}-${birthDate}`;
     
     const { years, months } = calculateAge(newPet.birthday || '');
     const completePet: PetProfile = { ...newPet as PetProfile, id, ownerId: user.uid, ownerName: user.displayName || 'Pet Parent', ageYears: String(years), ageMonths: String(months), weightHistory: [], vaccinations: [], isPublic: true };
@@ -252,6 +333,21 @@ const PetProfilePage: React.FC = () => {
     setNewWeight('');
   };
 
+  const handleScanSuccess = async (scannedId: string) => {
+    setIsScanning(false);
+    try {
+      const petData = await getPetById(scannedId);
+      if (petData) {
+        alert(`Found Pet: ${petData.name} (SSP ID: ${scannedId})`);
+        // Additional logic could be added here to link the found pet
+      } else {
+        alert(`No pet found with SSP ID: ${scannedId}`);
+      }
+    } catch (e) {
+      alert("Error retrieving pet record.");
+    }
+  };
+
   const healthSummary = useMemo(() => {
     if (!selectedPet) return null;
     const lastWeight = selectedPet.weightHistory[selectedPet.weightHistory.length - 1];
@@ -270,6 +366,12 @@ const PetProfilePage: React.FC = () => {
         </div>
         <div className="flex items-center gap-4">
           <button 
+            onClick={() => setIsScanning(true)} 
+            className="flex items-center gap-3 px-6 py-4 bg-white border border-slate-200 text-slate-600 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-slate-50 transition-all shadow-sm active:scale-95"
+          >
+            <Scan size={20} /> Scan ID
+          </button>
+          <button 
             onClick={() => { setStep(1); setIsAdding(true); }} 
             className="flex items-center gap-3 px-8 py-4 bg-theme text-white rounded-2xl font-black text-sm uppercase tracking-widest bg-theme-hover transition-all shadow-xl shadow-theme/10 active:scale-95"
           >
@@ -277,6 +379,8 @@ const PetProfilePage: React.FC = () => {
           </button>
         </div>
       </div>
+
+      {isScanning && <QRScanner onScan={handleScanSuccess} onCancel={() => setIsScanning(false)} />}
 
       <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-6">
         {pets.map(p => (
@@ -373,6 +477,10 @@ const PetProfilePage: React.FC = () => {
                   <h3 className="text-4xl font-black text-slate-900 tracking-tighter">{selectedPet.name}</h3>
                   <p className="text-slate-400 font-bold text-sm uppercase tracking-widest">{selectedPet.breed} • {selectedPet.species}</p>
                   <p className="text-xs font-black text-theme uppercase tracking-widest">{selectedPet.ageYears}y {selectedPet.ageMonths}m Old</p>
+                  <div className="flex items-center justify-center gap-2 mt-2 px-4 py-1.5 bg-slate-50 rounded-full border border-slate-100">
+                    <Fingerprint size={12} className="text-theme opacity-60" />
+                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">SSP ID: {selectedPet.id}</span>
+                  </div>
                 </div>
               </div>
             </div>

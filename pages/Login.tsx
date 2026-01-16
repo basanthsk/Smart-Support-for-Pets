@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Heart, Shield, Mail, Lock, User, MapPin, PawPrint, Loader2, ArrowRight, AlertCircle } from 'lucide-react';
+import { Loader2, AlertCircle, Eye, EyeOff } from 'lucide-react';
 import { loginWithGoogle, loginWithIdentifier, signUpWithEmail } from '../services/firebase';
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from '../context/AuthContext';
+import { AppRoutes } from '../types';
 
 const Login: React.FC = () => {
   const navigate = useNavigate();
@@ -10,16 +11,18 @@ const Login: React.FC = () => {
   const [isLogin, setIsLogin] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
 
   const LOGO_URL = "https://res.cloudinary.com/dazlddxht/image/upload/v1768234409/SS_Paw_Pal_Logo_aceyn8.png";
 
   const [formData, setFormData] = useState({
-    identifier: '', // Can be email or username
+    identifier: '', 
     password: '',
+    confirmPassword: '',
     fullName: '',
     username: '',
-    petName: '',
-    address: ''
   });
 
   useEffect(() => {
@@ -35,45 +38,44 @@ const Login: React.FC = () => {
 
   const formatFirebaseError = (err: any) => {
     const code = err.code || '';
-    if (code === 'auth/popup-blocked') return "Sign-in popup was blocked. Please enable popups for this site.";
+    if (code === 'auth/popup-blocked') return "Sign-in popup was blocked.";
     if (code === 'auth/popup-closed-by-user') return "Sign-in was cancelled.";
-    if (code === 'auth/cancelled-by-user') return "Action cancelled.";
-    if (code === 'auth/invalid-credential') return "The username/email or password you entered is incorrect.";
-    if (code === 'auth/email-already-in-use') return "This email is already registered. Try signing in instead.";
-    if (code === 'auth/weak-password') return "Password should be at least 6 characters.";
-    if (code === 'auth/network-request-failed') return "Network error. Please check your internet connection.";
-    return err.message || "An unexpected authentication error occurred.";
+    if (code === 'auth/invalid-credential') return "Incorrect credentials.";
+    if (code === 'auth/email-already-in-use') return "Email already in use.";
+    if (code === 'auth/weak-password') return "Password is too weak.";
+    return err.message || "An authentication error occurred.";
   };
 
   const handleGoogleLogin = async () => {
     setIsLoading(true);
     setError('');
-    
-    // Safety timeout to reset loading state if Firebase hangs
-    const timeout = setTimeout(() => setIsLoading(false), 30000);
-
     try {
       await loginWithGoogle();
     } catch (err: any) {
       setError(formatFirebaseError(err));
       setIsLoading(false);
-    } finally {
-      clearTimeout(timeout);
     }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
     setError('');
 
-    // Safety timeout
-    const timeout = setTimeout(() => {
-      if (isLoading) {
-        setIsLoading(false);
-        setError("Request timed out. Please check your connection and try again.");
+    if (!isLogin) {
+      if (!agreedToTerms) {
+        setError("Please agree to the Terms and Privacy Policy.");
+        return;
       }
-    }, 15000);
+      if (formData.password !== formData.confirmPassword) {
+        setError("Passwords do not match.");
+        return;
+      }
+      if (!formData.username) {
+        formData.username = formData.fullName.toLowerCase().replace(/\s/g, '') + Math.floor(Math.random() * 1000);
+      }
+    }
+
+    setIsLoading(true);
 
     try {
       if (isLogin) {
@@ -84,112 +86,167 @@ const Login: React.FC = () => {
     } catch (err: any) {
       setError(formatFirebaseError(err));
       setIsLoading(false);
-    } finally {
-      clearTimeout(timeout);
-      // We don't always setIsLoading(false) here if successful 
-      // because navigate() will happen in the background
     }
   };
   
   if (loading || (user && !isLoading)) {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
-        <Loader2 className="w-12 h-12 animate-spin text-theme transition-theme" />
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <Loader2 className="w-10 h-10 animate-spin text-slate-400" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
-      <div className="max-w-5xl w-full bg-white rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col md:flex-row transition-all duration-500 min-h-[600px]">
-        <div className="md:w-5/12 bg-theme p-8 md:p-12 text-white flex flex-col justify-between relative overflow-hidden transition-theme">
-          <div className="absolute top-0 right-0 -mr-16 -mt-16 w-64 h-64 bg-white/10 rounded-full blur-3xl"></div>
-          <div className="relative z-10">
-            <div className="flex items-center gap-3 mb-10">
-              <div className="bg-white p-2 rounded-2xl shadow-lg w-12 h-12 flex items-center justify-center overflow-hidden">
-                <img src={LOGO_URL} alt="Logo" className="w-10 h-10 object-contain" />
-              </div>
-              <h1 className="text-xl font-bold tracking-tight">SS Paw Pal</h1>
-            </div>
-            <h2 className="text-4xl font-extrabold leading-tight mb-6">
-              {isLogin ? "Your pet's best life starts here." : "Join our community of pet lovers."}
-            </h2>
+    <div className="min-h-screen bg-[#f8fafc] flex items-center justify-center p-6">
+      <div className="max-w-md w-full bg-white rounded-3xl shadow-[0_10px_40px_rgba(0,0,0,0.04)] border border-slate-100 p-8 md:p-10 animate-in fade-in zoom-in-95 duration-500">
+        <div className="mb-8 text-center">
+          <div className="w-20 h-20 bg-white rounded-2xl p-2 flex items-center justify-center shadow-xl border border-slate-50 mx-auto mb-6">
+            <img src={LOGO_URL} alt="SS Paw Pal Logo" className="w-full h-full object-contain" />
           </div>
+          <h1 className="text-2xl font-bold text-[#0f172a] tracking-tight">
+            {isLogin ? "Log in to your account" : "Create an Account"}
+          </h1>
+          <p className="text-slate-500 text-sm mt-2 font-medium">Welcome to SS Paw Pal</p>
         </div>
 
-        <div className="md:w-7/12 p-8 md:p-12 bg-white flex flex-col justify-center">
-          <div className="max-w-md mx-auto w-full">
-            <div className="mb-8 text-center md:text-left">
-              <h3 className="text-3xl font-bold text-slate-800 mb-2">{isLogin ? "Welcome Back!" : "Get Started"}</h3>
-              <p className="text-slate-500 text-sm">
-                {isLogin ? "Sign in with username or email." : "Create an account to join."}
-              </p>
+        {error && (
+          <div className="mb-6 p-4 bg-rose-50 border border-rose-100 text-rose-600 rounded-xl text-xs font-semibold flex items-start gap-3 animate-in fade-in slide-in-from-top-2">
+            <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+            <span>{error}</span>
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} className="space-y-5">
+          {!isLogin && (
+            <div className="space-y-1.5">
+              <label className="text-sm font-semibold text-slate-700 ml-1">Name</label>
+              <input 
+                required 
+                name="fullName" 
+                type="text" 
+                placeholder="Enter your name" 
+                value={formData.fullName} 
+                onChange={handleChange} 
+                className="w-full bg-white border border-slate-200 rounded-lg py-3.5 px-4 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none transition-all placeholder:text-slate-400" 
+              />
             </div>
+          )}
 
-            {error && (
-              <div className="mb-6 p-4 bg-red-50 border border-red-100 text-red-700 rounded-2xl text-xs leading-relaxed flex items-start gap-3 animate-in fade-in slide-in-from-top-2">
-                <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
-                <span className="font-medium">{error}</span>
-              </div>
-            )}
+          <div className="space-y-1.5">
+            <label className="text-sm font-semibold text-slate-700 ml-1">
+              {isLogin ? "Username or Email" : "Email"}
+            </label>
+            <input 
+              required 
+              name="identifier" 
+              type={isLogin ? "text" : "email"} 
+              placeholder={isLogin ? "Enter username or email" : "example@gmail.com"} 
+              value={formData.identifier} 
+              onChange={handleChange} 
+              className="w-full bg-white border border-slate-200 rounded-lg py-3.5 px-4 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none transition-all placeholder:text-slate-400" 
+            />
+          </div>
 
-            <form onSubmit={handleSubmit} className="space-y-4">
-              {!isLogin && (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Full Name</label>
-                    <input required name="fullName" type="text" placeholder="John Doe" value={formData.fullName} onChange={handleChange} className="w-full bg-slate-50 border border-slate-100 rounded-xl py-3 px-4 text-sm focus:bg-white focus:ring-2 focus:ring-theme outline-none transition-all" />
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Desired Username</label>
-                    <input required name="username" type="text" placeholder="johndoe" value={formData.username} onChange={handleChange} className="w-full bg-slate-50 border border-slate-100 rounded-xl py-3 px-4 text-sm focus:bg-white focus:ring-2 focus:ring-theme outline-none transition-all" />
-                  </div>
-                </div>
-              )}
-
-              <div className="space-y-1">
-                <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">{isLogin ? "Username or Email" : "Email Address"}</label>
-                <div className="relative">
-                  <Mail className="absolute left-4 top-3.5 text-slate-400 w-4 h-4" />
-                  <input required name="identifier" type={isLogin ? "text" : "email"} placeholder={isLogin ? "Username or email" : "email@example.com"} value={formData.identifier} onChange={handleChange} className="w-full bg-slate-50 border border-slate-100 rounded-xl py-3 pl-10 pr-4 text-sm focus:bg-white focus:ring-2 focus:ring-theme outline-none transition-all" />
-                </div>
-              </div>
-
-              <div className="space-y-1">
-                <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Password</label>
-                <div className="relative">
-                  <Lock className="absolute left-4 top-3.5 text-slate-400 w-4 h-4" />
-                  <input required name="password" type="password" placeholder="••••••••" value={formData.password} onChange={handleChange} className="w-full bg-slate-50 border border-slate-100 rounded-xl py-3 pl-10 pr-4 text-sm focus:bg-white focus:ring-2 focus:ring-theme outline-none transition-all" />
-                </div>
-              </div>
-
-              <button type="submit" disabled={isLoading} className="w-full bg-theme text-white h-[56px] rounded-2xl font-bold text-base hover:bg-theme-hover transition-all active:scale-[0.98] disabled:opacity-70 flex items-center justify-center gap-2 mt-4 shadow-lg shadow-theme/10 transition-theme">
-                {isLoading ? <><Loader2 className="w-5 h-5 animate-spin" /> Verifying...</> : (isLogin ? "Sign In" : "Create Account")}
-                {!isLoading && <ArrowRight size={18} />}
+          <div className="space-y-1.5">
+            <label className="text-sm font-semibold text-slate-700 ml-1">Password</label>
+            <div className="relative">
+              <input 
+                required 
+                name="password" 
+                type={showPassword ? "text" : "password"} 
+                placeholder="Enter your Password" 
+                value={formData.password} 
+                onChange={handleChange} 
+                className="w-full bg-white border border-slate-200 rounded-lg py-3.5 px-4 pr-12 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none transition-all placeholder:text-slate-400" 
+              />
+              <button 
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+              >
+                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
               </button>
-            </form>
-
-            <div className="my-6 flex items-center gap-4 text-slate-300">
-              <div className="h-px flex-1 bg-slate-100"></div>
-              <span className="text-[10px] font-bold">OR</span>
-              <div className="h-px flex-1 bg-slate-100"></div>
-            </div>
-
-            <button onClick={handleGoogleLogin} disabled={isLoading} className="w-full flex items-center justify-center gap-3 bg-white border border-slate-200 py-3.5 rounded-2xl font-bold text-slate-700 hover:bg-slate-50 transition-all active:scale-[0.98] disabled:opacity-50">
-              <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" className="w-5 h-5" alt="Google" />
-              Continue with Google
-            </button>
-
-            <div className="mt-8 text-center">
-              <p className="text-slate-500 text-sm font-medium">
-                {isLogin ? "New to SS Paw Pal?" : "Already have an account?"}
-                <button onClick={() => { setIsLogin(!isLogin); setError(''); }} className="ml-2 text-theme font-bold hover:underline transition-theme">
-                  {isLogin ? "Join Now" : "Sign In"}
-                </button>
-              </p>
             </div>
           </div>
+
+          {!isLogin && (
+            <div className="space-y-1.5">
+              <label className="text-sm font-semibold text-slate-700 ml-1">Confirm Password</label>
+              <div className="relative">
+                <input 
+                  required 
+                  name="confirmPassword" 
+                  type={showConfirmPassword ? "text" : "password"} 
+                  placeholder="Please confirm your Password" 
+                  value={formData.confirmPassword} 
+                  onChange={handleChange} 
+                  className="w-full bg-white border border-slate-200 rounded-lg py-3.5 px-4 pr-12 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none transition-all placeholder:text-slate-400" 
+                />
+                <button 
+                  type="button"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+                >
+                  {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {!isLogin && (
+            <div className="flex items-start gap-3 py-1">
+              <input 
+                id="terms"
+                type="checkbox" 
+                checked={agreedToTerms}
+                onChange={(e) => setAgreedToTerms(e.target.checked)}
+                className="mt-1 w-4 h-4 rounded border-slate-300 text-slate-600 focus:ring-slate-500"
+              />
+              <label htmlFor="terms" className="text-sm text-slate-600 leading-tight">
+                I agree with the <Link to={AppRoutes.TERMS} className="text-slate-900 underline hover:text-indigo-600 transition-colors">Terms of Service</Link> and <Link to={AppRoutes.PRIVACY} className="text-slate-900 underline hover:text-indigo-600 transition-colors">Privacy Policy</Link>.
+              </label>
+            </div>
+          )}
+
+          <button 
+            type="submit" 
+            disabled={isLoading} 
+            className="w-full bg-[#64748b] text-white py-4 rounded-lg font-bold text-base hover:bg-[#475569] transition-all active:scale-[0.98] disabled:opacity-70 flex items-center justify-center gap-2 mt-4 shadow-sm"
+          >
+            {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : (isLogin ? "Log in" : "Create Account")}
+          </button>
+        </form>
+
+        <div className="mt-8 pt-8 border-t border-slate-50 text-center">
+          <p className="text-slate-600 text-sm font-medium">
+            {isLogin ? "Don't have an account?" : "Already have an account?"}
+            <button 
+              onClick={() => { setIsLogin(!isLogin); setError(''); }} 
+              className="ml-1.5 text-slate-900 font-bold hover:text-indigo-600 transition-colors"
+            >
+              {isLogin ? "Sign up" : "Log in"}
+            </button>
+          </p>
         </div>
+
+        {isLogin && (
+           <div className="mt-6 flex flex-col gap-3">
+              <div className="flex items-center gap-4 text-slate-300">
+                <div className="h-px flex-1 bg-slate-100"></div>
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">or</span>
+                <div className="h-px flex-1 bg-slate-100"></div>
+              </div>
+              <button 
+                onClick={handleGoogleLogin} 
+                disabled={isLoading} 
+                className="w-full flex items-center justify-center gap-3 bg-white border border-slate-200 py-3.5 rounded-lg font-bold text-slate-700 hover:bg-slate-50 transition-all active:scale-[0.98] disabled:opacity-50 text-sm"
+              >
+                <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" className="w-4 h-4" alt="Google" />
+                Continue with Google
+              </button>
+           </div>
+        )}
       </div>
     </div>
   );

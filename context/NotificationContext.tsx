@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { useAuth } from './AuthContext';
 import { PetProfile } from '../types';
@@ -11,6 +10,22 @@ export interface AppNotification {
   timestamp: string;
   read: boolean;
 }
+
+interface RoutineTask {
+  id: string;
+  task: string;
+  startHour: number;
+  endHour: number;
+  timeLabel: string;
+}
+
+export const STAT_ROUTINE: RoutineTask[] = [
+  { id: 'morning_walk', task: 'Morning Walk', startHour: 7, endHour: 8, timeLabel: '07:00 - 08:00' },
+  { id: 'breakfast', task: 'Breakfast', startHour: 8, endHour: 9, timeLabel: '08:30 - 09:00' },
+  { id: 'midday_play', task: 'Mid-day Play', startHour: 12, endHour: 13, timeLabel: '12:00 - 13:00' },
+  { id: 'dinner', task: 'Dinner Time', startHour: 18, endHour: 19, timeLabel: '18:00 - 19:00' },
+  { id: 'night_walk', task: 'Night Walk', startHour: 21, endHour: 22, timeLabel: '21:00 - 22:00' },
+];
 
 interface NotificationContextType {
   notifications: AppNotification[];
@@ -27,7 +42,7 @@ const NotificationContext = createContext<NotificationContextType | undefined>(u
 export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user } = useAuth();
   const [permissionStatus, setPermissionStatus] = useState<NotificationPermission>(
-    'Notification' in window ? Notification.permission : 'denied'
+    'Notification' in window ? (Notification.permission as NotificationPermission) : 'denied'
   );
   
   const [notifications, setNotifications] = useState<AppNotification[]>(() => {
@@ -92,40 +107,68 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
   useEffect(() => {
     if (!user) return;
 
-    const checkReminders = () => {
-      const savedPet = localStorage.getItem(`pet_${user.uid}`);
-      if (!savedPet) return;
-      const pet: PetProfile = JSON.parse(savedPet);
+    const checkGlobalReminders = () => {
+      const today = new Date();
+      const todayKey = today.toISOString().split('T')[0];
+      const currentHour = today.getHours();
+      const currentMinutes = today.getMinutes();
 
-      pet.vaccinations?.forEach(v => {
-        if (!v.nextDueDate) return;
-        const dueDate = new Date(v.nextDueDate);
-        const today = new Date();
-        const diffDays = Math.ceil((dueDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
-        
-        if (diffDays <= 7 && diffDays > 0) {
-          const alreadyNotified = notifications.some(n => n.message.includes(v.name) && n.timestamp.startsWith(today.toISOString().split('T')[0]));
-          if (!alreadyNotified && localStorage.getItem('ssp_pref_vaccines') !== 'false') {
-            addNotification('Vaccination Reminder', `${pet.name}'s ${v.name} booster is due in ${diffDays} days!`, 'warning');
+      // 1. Check Pet Records (Vaccines/Weight)
+      const savedPetsStr = localStorage.getItem(`ssp_pets_${user.uid}`);
+      if (!savedPetsStr) return;
+      const pets: PetProfile[] = JSON.parse(savedPetsStr);
+
+      pets.forEach(pet => {
+        // Vaccination Checks
+        pet.vaccinations?.forEach(v => {
+          if (!v.nextDueDate) return;
+          const dueDate = new Date(v.nextDueDate);
+          const diffDays = Math.ceil((dueDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+          
+          if (diffDays <= 7 && diffDays > 0) {
+            const alreadyNotified = notifications.some(n => n.message.includes(v.name) && n.timestamp.startsWith(todayKey));
+            if (!alreadyNotified) {
+              addNotification('Action Required: Vaccine', `${pet.name}'s ${v.name} booster is due in ${diffDays} days!`, 'warning');
+            }
           }
-        }
+        });
+
+        // Routine Task Checks (The Proactive Logic)
+        STAT_ROUTINE.forEach(task => {
+          const activeKey = `notified_active_${task.id}_${todayKey}_${pet.id}`;
+          const upcomingKey = `notified_upcoming_${task.id}_${todayKey}_${pet.id}`;
+
+          // TRIGGER: On the Hour (Active)
+          if (currentHour === task.startHour && currentMinutes < 5) {
+            if (!localStorage.getItem(activeKey)) {
+              addNotification(
+                `Care Alert: ${task.task}`,
+                `Time to start ${task.task} for ${pet.name}. Schedule: ${task.timeLabel}.`,
+                'info'
+              );
+              localStorage.setItem(activeKey, 'true');
+            }
+          }
+
+          // TRIGGER: 30 Minutes Before (Upcoming)
+          const isUpcomingWindow = (currentHour === task.startHour - 1 && currentMinutes >= 30);
+          if (isUpcomingWindow) {
+            if (!localStorage.getItem(upcomingKey)) {
+              addNotification(
+                `Upcoming: ${task.task}`,
+                `Getting ready? ${task.task} for ${pet.name} starts in about 30 minutes.`,
+                'info'
+              );
+              localStorage.setItem(upcomingKey, 'true');
+            }
+          }
+        });
       });
-
-      if (pet.weightHistory?.length > 0 && localStorage.getItem('ssp_pref_weight') !== 'false') {
-        const lastLog = new Date(pet.weightHistory[pet.weightHistory.length - 1].date);
-        const today = new Date();
-        const diffDays = Math.ceil((today.getTime() - lastLog.getTime()) / (1000 * 60 * 60 * 24));
-        if (diffDays >= 30) {
-          const alreadyNotified = notifications.some(n => n.title === 'Weight Check' && n.timestamp.startsWith(today.toISOString().split('T')[0]));
-          if (!alreadyNotified) {
-            addNotification('Weight Check', `It's been a month since ${pet.name}'s last weight log.`, 'info');
-          }
-        }
-      }
     };
 
-    const interval = setInterval(checkReminders, 60000 * 60);
-    checkReminders();
+    // Check every minute for higher precision
+    const interval = setInterval(checkGlobalReminders, 60000);
+    checkGlobalReminders(); // Initial check
     return () => clearInterval(interval);
   }, [user, addNotification, notifications]);
 
