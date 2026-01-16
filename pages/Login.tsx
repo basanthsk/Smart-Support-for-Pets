@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Loader2, AlertCircle, Eye, EyeOff } from 'lucide-react';
-import { loginWithGoogle, loginWithIdentifier, signUpWithEmail } from '../services/firebase';
+import { loginWithGoogle, loginWithApple, loginWithIdentifier, signUpWithEmail } from '../services/firebase';
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from '../context/AuthContext';
 import { AppRoutes } from '../types';
@@ -57,6 +57,17 @@ const Login: React.FC = () => {
       setIsLoading(false);
     }
   };
+  
+  const handleAppleLogin = async () => {
+    setIsLoading(true);
+    setError('');
+    try {
+      await loginWithApple();
+    } catch (err: any) {
+      setError(formatFirebaseError(err));
+      setIsLoading(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -97,6 +108,12 @@ const Login: React.FC = () => {
       </div>
     );
   }
+  
+  const AppleIcon = () => (
+    <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+      <path d="M15.222 6.333c.889 0 1.689-.4 2.311-1.2.511-.622.8-1.511.889-2.4.089-1.067-.511-2.044-1.2-2.733-.622-.622-1.511-1.067-2.578-1-1.2.089-2.178.622-2.867 1.311-.511.622-.978 1.422-1.067 2.4-.178 1.067.356 2.044 1.067 2.733.8.8 1.778 1.289 2.867 1.289M14.6 8.511c-2.4.089-4.578 1.422-5.911 2.933-2.867 3.2-2.311 8.089.089 11.2 1.2.8 2.489 1.422 4.089 1.311.622 0 1.311-.089 2-.267.8-.178 1.6-.4 2.311-.8.267-.267.511-.511.622-.8.089-.267.178-.511.178-.8 0-.267-.089-.511-.178-.622-.178-.267-.356-.511-.622-.622-.356-.267-.8-.4-1.2-.4-.356 0-.622.089-.889.178-.356.178-.8.356-1.311.4-.4.089-.889.089-1.2-.089-1.2-.4-2.178-1.311-2.867-2.578-1.422-2.578-1.067-5.333.267-7.467 1.067-1.6 2.867-2.489 4.578-2.489.356 0 .8.089 1.2.178 1.2.4 2.178 1.2 2.867 2.311a.833.833 0 00.8.4c.267 0 .511-.089.711-.356.178-.267.267-.622.178-.889-.4-.889-1-1.689-1.778-2.4-1.2-1.2-2.733-1.867-4.4-1.867"/>
+    </svg>
+  );
 
   return (
     <div className="min-h-screen bg-[#f8fafc] flex items-center justify-center p-6">
@@ -245,6 +262,14 @@ const Login: React.FC = () => {
               >
                 <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" className="w-4 h-4" alt="Google" />
                 Continue with Google
+              </button>
+              <button 
+                onClick={handleAppleLogin} 
+                disabled={isLoading} 
+                className="w-full flex items-center justify-center gap-3 bg-black border border-slate-800 py-3.5 rounded-lg font-bold text-white hover:bg-slate-800 transition-all active:scale-[0.98] disabled:opacity-50 text-sm"
+              >
+                <AppleIcon />
+                Continue with Apple
               </button>
            </div>
         )}

@@ -3,7 +3,8 @@ import {
   getAuth, 
   signOut, 
   onAuthStateChanged, 
-  GoogleAuthProvider, 
+  GoogleAuthProvider,
+  OAuthProvider,
   signInWithPopup,
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
@@ -114,6 +115,23 @@ export const loginWithGoogle = async () => {
     }
   } catch (error: any) {
     console.error("Google login error:", error);
+    throw error;
+  }
+};
+
+export const loginWithApple = async () => {
+  const provider = new OAuthProvider('apple.com');
+  provider.addScope('email');
+  provider.addScope('name');
+
+  try {
+    const result = await signInWithPopup(auth, provider);
+    if (result.user) {
+      await syncUserToDb(result.user);
+      return result.user;
+    }
+  } catch (error: any) {
+    console.error("Apple login error:", error);
     throw error;
   }
 };
