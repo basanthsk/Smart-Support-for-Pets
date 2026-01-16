@@ -37,8 +37,8 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
   
   if (loading) return <PageLoader />;
   
-  // If no user OR user exists but email is not verified, redirect to login
-  if (!user || !user.emailVerified) {
+  // Removed strict emailVerified check to allow immediate access after signup
+  if (!user) {
     return <Navigate to="/login" replace />;
   }
   
@@ -59,7 +59,7 @@ declare global {
     hasSelectedApiKey: () => Promise<boolean>;
     openSelectKey: () => Promise<void>;
   }
-  interface Window {
+  interface window {
     aistudio?: AIStudio;
   }
 }
@@ -241,7 +241,7 @@ const PetProfilePage: React.FC = () => {
         </div>
       </div>
 
-      <div className="flex gap-3 overflow-x-auto pb-4 scroll-hide">
+      <div className="gap-3 overflow-x-auto pb-4 scroll-hide flex">
         {pets.map(p => (
           <button 
             key={p.id} 

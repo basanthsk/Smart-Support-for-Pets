@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { 
   Heart, 
@@ -126,8 +125,19 @@ const Community: React.FC = () => {
 
   const handleCreatePost = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newPostContent.trim() || !user) return;
+    if (isPosting) return;
+    if (!newPostContent.trim() && !selectedImage) {
+      addNotification('Post empty', 'Add text or an image to share your moment.', 'info');
+      return;
+    }
+    if (!user) {
+      addNotification('Not Authenticated', 'Please log in to share moments.', 'error');
+      return;
+    }
+
     setIsPosting(true);
+    console.log("Triggering handleCreatePost for user:", user.uid);
+    
     try {
       const postPayload = {
         user: user.displayName || 'Pet Parent',
@@ -141,12 +151,16 @@ const Community: React.FC = () => {
         createdAt: serverTimestamp(),
         userId: user.uid
       };
-      await addDoc(collection(db, "posts"), postPayload);
+      
+      const docRef = await addDoc(collection(db, "posts"), postPayload);
+      console.log("Post created successfully with ID:", docRef.id);
+      
       setNewPostContent('');
       setSelectedImage(null);
       addNotification('Moment Shared', 'Your post is now visible to the community.', 'success');
-    } catch (error) {
-      addNotification('Posting Error', 'Check your connection and try again.', 'error');
+    } catch (error: any) {
+      console.error("Firestore posting error:", error);
+      addNotification('Posting Error', `Failure: ${error.message || 'Check connection'}`, 'error');
     } finally {
       setIsPosting(false);
     }
@@ -206,7 +220,7 @@ const Community: React.FC = () => {
         </div>
       </div>
 
-      {/* Unified Stable Dashboard: Combined Post and Search (Matches Screenshot) */}
+      {/* Unified Stable Dashboard: Combined Post and Search */}
       <div className="bg-white rounded-[2.5rem] p-6 shadow-sm border border-slate-100 space-y-6">
         {/* Top Row: User Avatar, Search Bar, and Filter */}
         <div className="flex items-center gap-4">
@@ -270,9 +284,9 @@ const Community: React.FC = () => {
             <button 
               type="button" 
               onClick={() => fileInputRef.current?.click()} 
-              className="p-3.5 bg-slate-50 text-slate-500 rounded-xl hover:bg-slate-100 hover:text-slate-900 transition-all shadow-sm border border-slate-100"
+              className={`p-3.5 bg-slate-50 text-slate-500 rounded-xl hover:bg-slate-100 hover:text-slate-900 transition-all shadow-sm border ${selectedImage ? 'border-theme' : 'border-slate-100'}`}
             >
-              <ImageIcon size={20} />
+              <ImageIcon size={20} className={selectedImage ? 'text-theme' : ''} />
             </button>
             <button 
               type="button" 
@@ -286,7 +300,7 @@ const Community: React.FC = () => {
 
           <button 
             onClick={handleCreatePost}
-            disabled={isPosting || !newPostContent.trim()} 
+            disabled={isPosting || (!newPostContent.trim() && !selectedImage)} 
             className="bg-theme text-white px-10 py-4 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-theme-hover shadow-xl shadow-theme/20 transition-all disabled:opacity-50 disabled:shadow-none"
           >
             {isPosting ? <Loader2 size={16} className="animate-spin" /> : 'Share Moment'}

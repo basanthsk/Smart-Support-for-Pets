@@ -36,8 +36,8 @@ const Login: React.FC = () => {
   });
 
   useEffect(() => {
-    // If user is logged in and verified, send to dashboard
-    if (!loading && user && user.emailVerified) {
+    // Navigate to home if user is already logged in
+    if (!loading && user) {
       navigate('/', { replace: true });
     }
   }, [user, loading, navigate]);
@@ -74,6 +74,7 @@ const Login: React.FC = () => {
     setError('');
     try {
       await loginWithGoogle();
+      navigate('/', { replace: true });
     } catch (err: any) {
       setError(formatFirebaseError(err));
       setIsLoading(false);
@@ -85,6 +86,7 @@ const Login: React.FC = () => {
     setError('');
     try {
       await loginWithApple();
+      navigate('/', { replace: true });
     } catch (err: any) {
       setError(formatFirebaseError(err));
       setIsLoading(false);
@@ -140,13 +142,8 @@ const Login: React.FC = () => {
 
     try {
       if (isLogin) {
-        const loggedUser = await loginWithIdentifier(formData.identifier, formData.password);
-        if (!loggedUser.emailVerified) {
-          setVerificationNeeded(true);
-          setError("Your email isn't verified yet.");
-        } else {
-          navigate('/', { replace: true });
-        }
+        await loginWithIdentifier(formData.identifier, formData.password);
+        navigate('/', { replace: true });
       } else {
         await signUpWithEmail(
           formData.identifier, 
@@ -154,9 +151,8 @@ const Login: React.FC = () => {
           formData.fullName, 
           formData.username
         );
-        setSuccessMessage("Registration successful! Verify your email to continue.");
-        setVerificationNeeded(true);
-        setIsLogin(true); // Switch to login view after successful signup
+        // Navigate immediately after signup to avoid verification block
+        navigate('/', { replace: true });
       }
     } catch (err: any) {
       setError(formatFirebaseError(err));
@@ -188,33 +184,6 @@ const Login: React.FC = () => {
           <div className="mb-6 p-4 bg-rose-50 border border-rose-100 text-rose-600 rounded-2xl text-xs font-black flex items-start gap-3 animate-in slide-in-from-top-2">
             <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
             <span>{error}</span>
-          </div>
-        )}
-
-        {successMessage && (
-          <div className="mb-6 p-4 bg-emerald-50 border border-emerald-100 text-emerald-600 rounded-2xl text-xs font-black flex items-start gap-3 animate-in slide-in-from-top-2">
-            <CheckCircle2 className="w-4 h-4 shrink-0 mt-0.5" />
-            <span>{successMessage}</span>
-          </div>
-        )}
-
-        {verificationNeeded && (
-          <div className="mb-8 p-6 bg-indigo-50 border border-indigo-100 rounded-[2rem] space-y-4 animate-in zoom-in-95">
-            <div className="flex items-center gap-3 text-indigo-700">
-              <MailCheck className="w-6 h-6" />
-              <h3 className="font-black text-sm uppercase tracking-tight">Verify Your Identity</h3>
-            </div>
-            <p className="text-xs text-indigo-600/80 font-medium leading-relaxed">
-              We've sent a magic link to your email. Please click it to activate your companion portal.
-            </p>
-            <button 
-              onClick={handleResend}
-              disabled={isResending}
-              className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-indigo-600 hover:text-indigo-800 transition-colors disabled:opacity-50"
-            >
-              {isResending ? <RefreshCcw className="w-3 h-3 animate-spin" /> : <RefreshCcw className="w-3 h-3" />}
-              Resend magic link
-            </button>
           </div>
         )}
 
