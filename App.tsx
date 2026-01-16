@@ -1,10 +1,10 @@
 
 import React, { useState, useEffect, useMemo, useRef, lazy, Suspense } from 'react';
-import { HashRouter as Router, Routes, Route, Navigate, useParams } from "react-router-dom";
+import { HashRouter as Router, Routes, Route, Navigate, useParams, useNavigate } from "react-router-dom";
 import Layout from './components/Layout';
 import { AppRoutes, PetProfile, WeightRecord, VaccinationRecord } from './types';
 import { AuthProvider, useAuth } from './context/AuthContext';
-import { NotificationProvider } from './context/NotificationContext';
+import { NotificationProvider, useNotifications } from './context/NotificationContext';
 import { GoogleGenAI } from "@google/genai";
 import { syncPetToDb, getPetById } from './services/firebase';
 import jsQR from 'jsqr';
@@ -54,10 +54,10 @@ const PageLoader = () => (
   </div>
 );
 
-// Fixed: Extended Window interface to include aistudio as any to avoid conflict with existing AIStudio type declarations.
+// Fixed: Corrected global window.aistudio type from 'any' to 'AIStudio' to resolve property declaration mismatch.
 declare global {
   interface Window {
-    aistudio?: any;
+    aistudio?: AIStudio;
   }
 }
 
@@ -90,10 +90,13 @@ const calculateAge = (birthday: string) => {
 
 const PetProfilePage: React.FC = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
+  const { addNotification } = useNotifications();
   const [pets, setPets] = useState<PetProfile[]>([]);
   const [selectedPet, setSelectedPet] = useState<PetProfile | null>(null);
   const [isAdding, setIsAdding] = useState(false);
   const [isGeneratingAvatar, setIsGeneratingAvatar] = useState(false);
+  const [isScanning, setIsScanning] = useState(false);
   const [showKeyPrompt, setShowKeyPrompt] = useState(false);
   const [step, setStep] = useState(1);
   const [selectedCategory, setSelectedCategory] = useState<any>(null);
@@ -187,7 +190,10 @@ const PetProfilePage: React.FC = () => {
   const handleScanClick = () => {
     const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
     if (isMobile) {
-      alert("Mobile camera scanning initiated...");
+      addNotification('Mobile Scan', 'Camera scanner initializing...', 'info');
+      // For a real mobile implementation, we'd use a camera stream here.
+      // For this demo, we fall back to file selection.
+      qrFileInputRef.current?.click();
     } else {
       qrFileInputRef.current?.click();
     }
@@ -197,23 +203,52 @@ const PetProfilePage: React.FC = () => {
     const file = e.target.files?.[0];
     if (!file) return;
     
+    setIsScanning(true);
     const reader = new FileReader();
     reader.onload = (event) => {
       const img = new Image();
-      img.onload = () => {
+      img.onload = async () => {
         const canvas = document.createElement('canvas');
         const ctx = canvas.getContext('2d');
-        if (!ctx) return;
+        if (!ctx) {
+          setIsScanning(false);
+          return;
+        }
         canvas.width = img.width;
         canvas.height = img.height;
         ctx.drawImage(img, 0, 0);
         const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
         const code = jsQR(imageData.data, imageData.width, imageData.height);
+        
         if (code) {
-          alert(`Successfully identified ID: ${code.data}`);
+          const petId = code.data;
+          try {
+            const petData = await getPetById(petId);
+            if (petData) {
+              addNotification('ID Identified', `Successfully retrieved profile for ${petData.name}`, 'success');
+              
+              // Check if the pet belongs to the current user
+              const userPet = pets.find(p => p.id === petData.id);
+              if (userPet) {
+                setSelectedPet(userPet);
+                setIsAdding(false);
+              } else {
+                // If not user's pet, navigate to public profile
+                navigate(`/pet/${petData.id}`);
+              }
+            } else {
+              addNotification('Invalid ID', 'The ID code provided does not match our records.', 'error');
+            }
+          } catch (err) {
+            console.error("Scan error:", err);
+            addNotification('Retrieval Failed', 'Could not verify the companion ID.', 'error');
+          }
         } else {
-          alert("No valid ID code found in the image.");
+          addNotification('No Code Found', 'No valid Paw Pal ID was detected in the image.', 'warning');
         }
+        setIsScanning(false);
+        // Clear input
+        if (qrFileInputRef.current) qrFileInputRef.current.value = '';
       };
       img.src = event.target?.result as string;
     };
@@ -229,8 +264,13 @@ const PetProfilePage: React.FC = () => {
         </div>
         <div className="flex items-center gap-3">
           <input type="file" ref={qrFileInputRef} className="hidden" accept="image/*" onChange={handleFileScan} />
-          <button onClick={handleScanClick} className="flex items-center gap-2 px-6 py-3.5 bg-white border border-slate-200 text-slate-600 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-slate-50 transition-all shadow-sm active:scale-95">
-            <Scan size={18} /> {/iPhone|iPad|iPod|Android/i.test(navigator.userAgent) ? 'Scan ID' : 'Upload ID'}
+          <button 
+            onClick={handleScanClick} 
+            disabled={isScanning}
+            className="flex items-center gap-2 px-6 py-3.5 bg-white border border-slate-200 text-slate-600 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-slate-50 transition-all shadow-sm active:scale-95 disabled:opacity-50"
+          >
+            {isScanning ? <Loader2 size={18} className="animate-spin" /> : <Scan size={18} />} 
+            {/iPhone|iPad|iPod|Android/i.test(navigator.userAgent) ? 'Scan ID' : 'Upload ID'}
           </button>
           <button onClick={() => { setStep(1); setIsAdding(true); }} className="flex items-center gap-2 px-6 py-3.5 bg-theme text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-theme-hover transition-all shadow-xl shadow-theme/10 active:scale-95">
             <Plus size={18} /> Register Companion

@@ -1,8 +1,9 @@
+
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { 
   Heart, 
   Share2, 
-  Image as ImageIcon, 
+  ImageIcon, 
   Send, 
   Camera, 
   Loader2, 
@@ -17,38 +18,108 @@ import {
   Wand2,
   Sparkles,
   Smile,
-  PawPrint
+  PawPrint,
+  Check,
+  MessageCircle,
+  Users
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useNotifications } from '../context/NotificationContext';
-import { db } from '../services/firebase';
+import { db, addPostComment } from '../services/firebase';
 import { useNavigate } from "react-router-dom";
 import { 
   collection, 
   addDoc, 
   query, 
+  where, // Added missing where import
   orderBy, 
   onSnapshot, 
-  serverTimestamp 
+  serverTimestamp,
+  getDocs
 } from "firebase/firestore";
 import { GoogleGenAI } from "@google/genai";
-
-interface Post {
-  id: string;
-  user: string;
-  avatar: string | null;
-  petName: string;
-  petType?: string;
-  content: string;
-  image: string;
-  likes: number;
-  comments: number;
-  createdAt: any;
-  isUser?: boolean;
-  userId: string;
-}
+import { Post, PostComment } from '../types';
 
 const PET_TYPES = ['All', 'Dog', 'Cat', 'Bird', 'Fish', 'Rabbit', 'Hamster', 'Reptile', 'Other'];
+
+const IMAGE_FILTERS = [
+  { name: 'None', class: '' },
+  { name: 'Vibrant', class: 'brightness-110 contrast-110 saturate-125' },
+  { name: 'Warm', class: 'sepia-[0.2] saturate-150 hue-rotate-[-10deg]' },
+  { name: 'Noir', class: 'grayscale contrast-125' },
+  { name: 'Cinematic', class: 'contrast-125 brightness-90 saturate-75' },
+  { name: 'Bright', class: 'brightness-125 contrast-90' },
+];
+
+const CommentSection: React.FC<{ postId: string, commentsCount: number }> = ({ postId, commentsCount }) => {
+  const { user } = useAuth();
+  const [comments, setComments] = useState<PostComment[]>([]);
+  const [newComment, setNewComment] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    setLoading(true);
+    const q = query(collection(db, "posts", postId, "comments"), orderBy("createdAt", "asc"));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const fetched = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as PostComment[];
+      setComments(fetched);
+      setLoading(false);
+    });
+    return () => unsubscribe();
+  }, [postId]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newComment.trim() || !user || isSubmitting) return;
+
+    setIsSubmitting(true);
+    try {
+      await addPostComment(postId, user, newComment.trim());
+      setNewComment('');
+    } catch (error) {
+      console.error("Comment error:", error);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="px-6 pb-6 pt-2 space-y-4 border-t border-slate-50 animate-in fade-in slide-in-from-top-2 duration-300">
+      <div className="space-y-4 max-h-60 overflow-y-auto pr-2 custom-scrollbar">
+        {loading && <div className="text-center py-2"><Loader2 size={16} className="animate-spin text-slate-200 mx-auto" /></div>}
+        {comments.map(comment => (
+          <div key={comment.id} className="flex gap-3 items-start">
+            <div className="w-8 h-8 rounded-lg overflow-hidden bg-slate-100 border border-slate-50 shrink-0">
+              {comment.userAvatar ? <img src={comment.userAvatar} className="w-full h-full object-cover" /> : <UserIcon size={14} className="m-2 text-slate-300" />}
+            </div>
+            <div className="bg-slate-50/50 p-3 rounded-2xl flex-1">
+              <p className="text-[10px] font-black text-slate-900 leading-none mb-1">{comment.userName}</p>
+              <p className="text-xs text-slate-600 font-medium leading-relaxed">{comment.text}</p>
+            </div>
+          </div>
+        ))}
+        {!loading && comments.length === 0 && <p className="text-center text-[10px] font-black text-slate-300 uppercase tracking-widest py-2">No comments yet</p>}
+      </div>
+
+      <form onSubmit={handleSubmit} className="flex gap-2">
+        <input 
+          type="text" 
+          value={newComment}
+          onChange={e => setNewComment(e.target.value)}
+          placeholder="Add a comment..." 
+          className="flex-1 bg-slate-50 border border-slate-100 rounded-xl px-4 py-2 text-xs font-medium outline-none focus:ring-4 focus:ring-theme/5 transition-all"
+        />
+        <button 
+          disabled={!newComment.trim() || isSubmitting}
+          className="p-2 bg-theme text-white rounded-xl hover:bg-theme-hover disabled:opacity-50 transition-all active:scale-95"
+        >
+          {isSubmitting ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
+        </button>
+      </form>
+    </div>
+  );
+};
 
 const Community: React.FC = () => {
   const { user } = useAuth();
@@ -57,14 +128,18 @@ const Community: React.FC = () => {
   const [posts, setPosts] = useState<Post[]>([]);
   const [newPostContent, setNewPostContent] = useState('');
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [activeFilter, setActiveFilter] = useState(IMAGE_FILTERS[0]);
   const [isPosting, setIsPosting] = useState(false);
   const [isEnhancing, setIsEnhancing] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [openComments, setOpenComments] = useState<Record<string, boolean>>({});
+  const [friendUids, setFriendUids] = useState<Set<string>>(new Set());
+  
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [searchQuery, setSearchQuery] = useState('');
   const [typeFilter, setTypeFilter] = useState('All');
-  const [sortBy, setSortBy] = useState<'newest' | 'popular'>('newest');
+  const [sortBy, setSortBy] = useState<'newest' | 'popular' | 'commented' | 'friends'>('newest');
 
   useEffect(() => {
     if (user?.uid) {
@@ -77,6 +152,19 @@ const Community: React.FC = () => {
           console.error("Failed to parse pet data", e);
         }
       }
+
+      // Fetch friends (uids of people user has chatted with)
+      const fetchFriends = async () => {
+        const q = query(collection(db, "chats"), where("participants", "array-contains", user.uid));
+        const snap = await getDocs(q);
+        const uids = new Set<string>();
+        snap.docs.forEach(d => {
+          const parts = d.data().participants as string[];
+          parts.forEach(p => { if (p !== user.uid) uids.add(p); });
+        });
+        setFriendUids(uids);
+      };
+      fetchFriends();
     }
   }, [user]);
 
@@ -136,7 +224,6 @@ const Community: React.FC = () => {
     }
 
     setIsPosting(true);
-    console.log("Triggering handleCreatePost for user:", user.uid);
     
     try {
       const postPayload = {
@@ -146,17 +233,18 @@ const Community: React.FC = () => {
         petType: pet?.species || 'Other',
         content: newPostContent.trim(),
         image: selectedImage || '',
+        imageFilter: activeFilter.class,
         likes: 0,
-        comments: 0,
+        commentsCount: 0,
         createdAt: serverTimestamp(),
         userId: user.uid
       };
       
-      const docRef = await addDoc(collection(db, "posts"), postPayload);
-      console.log("Post created successfully with ID:", docRef.id);
+      await addDoc(collection(db, "posts"), postPayload);
       
       setNewPostContent('');
       setSelectedImage(null);
+      setActiveFilter(IMAGE_FILTERS[0]);
       addNotification('Moment Shared', 'Your post is now visible to the community.', 'success');
     } catch (error: any) {
       console.error("Firestore posting error:", error);
@@ -171,14 +259,26 @@ const Community: React.FC = () => {
       const matchesSearch = (p.petName?.toLowerCase() || '').includes(searchQuery.toLowerCase()) || 
                            (p.content?.toLowerCase() || '').includes(searchQuery.toLowerCase());
       const matchesType = typeFilter === 'All' || p.petType === typeFilter;
+      
+      // Friends filter
+      if (sortBy === 'friends' && p.userId !== user?.uid && !friendUids.has(p.userId)) {
+        return false;
+      }
+
       return matchesSearch && matchesType;
     });
 
     if (sortBy === 'popular') {
       result = result.sort((a, b) => (b.likes || 0) - (a.likes || 0));
+    } else if (sortBy === 'commented') {
+      result = result.sort((a, b) => (b.commentsCount || 0) - (a.commentsCount || 0));
     }
     return result;
-  }, [posts, searchQuery, typeFilter, sortBy]);
+  }, [posts, searchQuery, typeFilter, sortBy, friendUids, user?.uid]);
+
+  const toggleComments = (postId: string) => {
+    setOpenComments(prev => ({ ...prev, [postId]: !prev[postId] }));
+  };
 
   const handleSharePost = async (post: Post) => {
     const shareData = {
@@ -197,25 +297,37 @@ const Community: React.FC = () => {
   };
 
   return (
-    <div className="space-y-10 animate-fade-in px-2">
+    <div className="space-y-10 animate-fade-in px-2 max-w-5xl mx-auto">
       {/* Header Section */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-4">
         <div>
           <h2 className="text-3xl font-black text-slate-900 tracking-tighter">Community Feed</h2>
           <p className="text-slate-500 font-medium text-sm">See what's happening in the pet world today.</p>
         </div>
-        <div className="flex bg-white p-1 rounded-xl shadow-sm border border-slate-100">
+        <div className="flex bg-white p-1 rounded-xl shadow-sm border border-slate-100 flex-wrap gap-1">
           <button 
             onClick={() => setSortBy('newest')}
-            className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${sortBy === 'newest' ? 'bg-slate-900 text-white shadow-lg' : 'text-slate-400 hover:text-slate-600'}`}
+            className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${sortBy === 'newest' ? 'bg-slate-900 text-white shadow-lg' : 'text-slate-400 hover:text-slate-600'}`}
           >
             <Clock size={14} className="inline mr-1" /> New
           </button>
           <button 
             onClick={() => setSortBy('popular')}
-            className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${sortBy === 'popular' ? 'bg-slate-900 text-white shadow-lg' : 'text-slate-400 hover:text-slate-600'}`}
+            className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${sortBy === 'popular' ? 'bg-slate-900 text-white shadow-lg' : 'text-slate-400 hover:text-slate-600'}`}
           >
             <TrendingUp size={14} className="inline mr-1" /> Popular
+          </button>
+          <button 
+            onClick={() => setSortBy('commented')}
+            className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${sortBy === 'commented' ? 'bg-slate-900 text-white shadow-lg' : 'text-slate-400 hover:text-slate-600'}`}
+          >
+            <MessageCircle size={14} className="inline mr-1" /> Most Commented
+          </button>
+          <button 
+            onClick={() => setSortBy('friends')}
+            className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${sortBy === 'friends' ? 'bg-slate-900 text-white shadow-lg' : 'text-slate-400 hover:text-slate-600'}`}
+          >
+            <Users size={14} className="inline mr-1" /> Friends Only
           </button>
         </div>
       </div>
@@ -238,7 +350,7 @@ const Community: React.FC = () => {
               type="text" 
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
-              placeholder="Search moments by pet name..." 
+              placeholder="Search by keywords or pet name..." 
               className="w-full bg-slate-50/50 border border-slate-100 rounded-full py-4 pl-14 pr-4 text-sm font-medium text-slate-600 placeholder:text-slate-400 focus:ring-4 focus:ring-theme/5 outline-none transition-all" 
             />
           </div>
@@ -293,6 +405,7 @@ const Community: React.FC = () => {
               onClick={handleEnhanceWithAI} 
               disabled={isEnhancing} 
               className="p-3.5 bg-slate-900 text-theme rounded-xl hover:bg-black transition-all shadow-md border border-slate-800"
+              title="AI Magic Caption"
             >
               {isEnhancing ? <Loader2 size={20} className="animate-spin text-white" /> : <Wand2 size={20} />}
             </button>
@@ -308,11 +421,36 @@ const Community: React.FC = () => {
         </div>
 
         {selectedImage && (
-          <div className="relative w-40 h-40 rounded-2xl overflow-hidden border-2 border-white shadow-lg animate-in fade-in zoom-in-95 mt-4">
-            <img src={selectedImage} className="w-full h-full object-cover" />
-            <button onClick={() => setSelectedImage(null)} className="absolute top-2 right-2 p-1.5 bg-black/50 text-white rounded-full backdrop-blur-sm hover:bg-black transition-all">
-              <X size={14} />
-            </button>
+          <div className="space-y-4 animate-in fade-in zoom-in-95 mt-4">
+            <div className="flex flex-col md:flex-row gap-6">
+              <div className="relative w-full md:w-64 h-64 rounded-2xl overflow-hidden border-2 border-white shadow-lg bg-slate-100">
+                <img src={selectedImage} className={`w-full h-full object-cover transition-all duration-500 ${activeFilter.class}`} />
+                <button onClick={() => setSelectedImage(null)} className="absolute top-2 right-2 p-1.5 bg-black/50 text-white rounded-full backdrop-blur-sm hover:bg-black transition-all">
+                  <X size={14} />
+                </button>
+                <div className="absolute bottom-2 left-2 bg-black/50 text-white text-[8px] px-2 py-1 rounded font-black uppercase tracking-widest backdrop-blur-sm">
+                  AI Preset: {activeFilter.name}
+                </div>
+              </div>
+              
+              <div className="flex-1 space-y-4">
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                  <Sparkles size={14} className="text-theme" /> AI Image Enhancements
+                </p>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                  {IMAGE_FILTERS.map((f) => (
+                    <button 
+                      key={f.name}
+                      onClick={() => setActiveFilter(f)}
+                      className={`px-3 py-2 rounded-xl text-[10px] font-bold border transition-all flex items-center justify-between ${activeFilter.name === f.name ? 'bg-theme text-white border-theme' : 'bg-slate-50 text-slate-500 border-slate-100 hover:border-theme/30'}`}
+                    >
+                      {f.name}
+                      {activeFilter.name === f.name && <Check size={12} />}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
           </div>
         )}
       </div>
@@ -340,15 +478,33 @@ const Community: React.FC = () => {
                 </div>
               </div>
               <div className="px-6 pb-6 text-slate-700 font-medium leading-relaxed">{post.content}</div>
-              {post.image && <div className="px-4 pb-4"><img src={post.image} className="w-full h-auto rounded-[1.5rem] shadow-xl" /></div>}
+              {post.image && (
+                <div className="px-4 pb-4">
+                  <img 
+                    src={post.image} 
+                    className={`w-full h-auto rounded-[1.5rem] shadow-xl ${post.imageFilter || ''}`} 
+                    loading="lazy"
+                  />
+                </div>
+              )}
               <div className="px-6 py-4 border-t border-slate-50 bg-slate-50/20 flex gap-6">
                 <button className="flex items-center gap-2 text-[10px] font-black text-slate-400 hover:text-rose-500 transition-colors uppercase tracking-widest">
-                  <Heart size={16} /> {post.likes} Appreciation
+                  <Heart size={16} /> {post.likes} appreciation
+                </button>
+                <button 
+                  onClick={() => toggleComments(post.id)}
+                  className={`flex items-center gap-2 text-[10px] font-black transition-colors uppercase tracking-widest ${openComments[post.id] ? 'text-theme' : 'text-slate-400 hover:text-theme'}`}
+                >
+                  <MessageSquare size={16} /> {post.commentsCount || 0} Comments
                 </button>
                 <button onClick={() => handleSharePost(post)} className="flex items-center gap-2 text-[10px] font-black text-slate-400 hover:text-theme transition-colors uppercase tracking-widest">
                   <Share2 size={16} /> Share Moment
                 </button>
               </div>
+              
+              {openComments[post.id] && (
+                <CommentSection postId={post.id} commentsCount={post.commentsCount || 0} />
+              )}
             </article>
           ))
         )}
