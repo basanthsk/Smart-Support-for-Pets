@@ -5,6 +5,7 @@ import {
   signOut, 
   onAuthStateChanged, 
   GoogleAuthProvider, 
+  OAuthProvider,
   signInWithPopup,
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
@@ -130,6 +131,20 @@ export const loginWithGoogle = async () => {
     }
   } catch (error: any) {
     console.error("Google login error:", error);
+    throw error;
+  }
+};
+
+export const loginWithApple = async () => {
+  const provider = new OAuthProvider('apple.com');
+  try {
+    const result = await signInWithPopup(auth, provider);
+    if (result.user) {
+      await syncUserToDb(result.user);
+      return result.user;
+    }
+  } catch (error: any) {
+    console.error("Apple login error:", error);
     throw error;
   }
 };
