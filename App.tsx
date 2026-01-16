@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useMemo, useRef, lazy, Suspense } from 'react';
 import { HashRouter as Router, Routes, Route, Navigate, useParams } from "react-router-dom";
 import Layout from './components/Layout';
@@ -37,7 +38,6 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
   
   if (loading) return <PageLoader />;
   
-  // Removed strict emailVerified check to allow immediate access after signup
   if (!user) {
     return <Navigate to="/login" replace />;
   }
@@ -54,13 +54,10 @@ const PageLoader = () => (
   </div>
 );
 
+// Fixed: Extended Window interface to include aistudio as any to avoid conflict with existing AIStudio type declarations.
 declare global {
-  interface AIStudio {
-    hasSelectedApiKey: () => Promise<boolean>;
-    openSelectKey: () => Promise<void>;
-  }
-  interface window {
-    aistudio?: AIStudio;
+  interface Window {
+    aistudio?: any;
   }
 }
 
