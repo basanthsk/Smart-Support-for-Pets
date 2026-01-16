@@ -107,7 +107,7 @@ const Login: React.FC = () => {
           <h1 className="text-2xl font-bold text-[#0f172a] tracking-tight">
             {isLogin ? "Log in to your account" : "Create an Account"}
           </h1>
-          <p className="text-slate-500 text-sm mt-2 font-medium">Welcome to SS Paw Pal</p>
+          <p className="text-slate-500 text-sm mt-2 font-medium">Welcome back to SS Paw Pal</p>
         </div>
 
         {error && (
@@ -212,7 +212,7 @@ const Login: React.FC = () => {
           <button 
             type="submit" 
             disabled={isLoading} 
-            className="w-full bg-[#64748b] text-white py-4 rounded-lg font-bold text-base hover:bg-[#475569] transition-all active:scale-[0.98] disabled:opacity-70 flex items-center justify-center gap-2 mt-4 shadow-sm"
+            className="w-full bg-[#334155] text-white py-4 rounded-lg font-bold text-base hover:bg-[#1e293b] transition-all active:scale-[0.98] disabled:opacity-70 flex items-center justify-center gap-2 mt-4 shadow-sm"
           >
             {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : (isLogin ? "Log in" : "Create Account")}
           </button>

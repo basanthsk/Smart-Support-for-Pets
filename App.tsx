@@ -37,7 +37,10 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
 
 const PageLoader = () => (
   <div className="flex h-[60vh] w-full items-center justify-center">
-    <Loader2 className="animate-spin text-theme" size={48} />
+    <div className="flex flex-col items-center gap-4">
+      <Loader2 className="animate-spin text-theme" size={48} />
+      <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Loading Engine...</p>
+    </div>
   </div>
 );
 
@@ -113,6 +116,11 @@ const calculateAge = (birthday: string) => {
   return { years: Math.max(0, years), months: Math.max(0, months) };
 };
 
+const getInitials = (name: string) => {
+  if (!name) return 'X';
+  return name.split(' ').map(n => n[0]).filter(Boolean).join('').toUpperCase();
+};
+
 const QRScanner: React.FC<{ onScan: (id: string) => void; onCancel: () => void }> = ({ onScan, onCancel }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -127,7 +135,7 @@ const QRScanner: React.FC<{ onScan: (id: string) => void; onCancel: () => void }
         stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
         if (videoRef.current) {
           videoRef.current.srcObject = stream;
-          videoRef.current.setAttribute("playsinline", "true"); // required to tell iOS safari we don't want fullscreen
+          videoRef.current.setAttribute("playsinline", "true");
           videoRef.current.play();
           requestAnimationFrame(tick);
         }
@@ -211,7 +219,6 @@ const PetProfilePage: React.FC = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [newWeight, setNewWeight] = useState('');
 
-  // Optimized pet loading effect to prevent unnecessary loops
   useEffect(() => {
     if (!user?.uid) return;
     const saved = localStorage.getItem(`ssp_pets_${user.uid}`);
@@ -241,11 +248,11 @@ const PetProfilePage: React.FC = () => {
     setError(null);
     if (!newPet.birthday || new Date(newPet.birthday) > new Date()) { setError("Birth date cannot be in the future."); return; }
     
-    const ownerInitial = user.displayName?.charAt(0).toUpperCase() || 'X';
-    const petInitial = newPet.name?.charAt(0).toUpperCase() || 'X';
+    // Automated SSP-ID generation: SSP-[OwnerInitials][PetInitials]-[YYYYMMDD]
+    const ownerInitials = getInitials(user.displayName || 'X');
+    const petInitials = getInitials(newPet.name || 'X');
     const birthDate = newPet.birthday?.replace(/-/g, '') || '00000000';
-    // Format: SSP-OIPI-YYYYMMDD
-    const id = `SSP-${ownerInitial}${petInitial}-${birthDate}`;
+    const id = `SSP-${ownerInitials}${petInitials}-${birthDate}`;
     
     const { years, months } = calculateAge(newPet.birthday || '');
     const completePet: PetProfile = { ...newPet as PetProfile, id, ownerId: user.uid, ownerName: user.displayName || 'Pet Parent', ageYears: String(years), ageMonths: String(months), weightHistory: [], vaccinations: [], isPublic: true };
@@ -328,7 +335,7 @@ const PetProfilePage: React.FC = () => {
     if (!newWeight || isNaN(Number(newWeight)) || !selectedPet) return;
     const updatedHistory: WeightRecord[] = [...(selectedPet.weightHistory || []), { date: new Date().toISOString(), weight: Number(newWeight) }];
     const updatedPets = pets.map(p => p.id === selectedPet.id ? { ...p, weightHistory: updatedHistory } : p);
-    await savePetsToStorage(updatedPets);
+    await savePetsToStorage(updatedHistory.length ? updatedPets : pets);
     setSelectedPet({ ...selectedPet, weightHistory: updatedHistory });
     setNewWeight('');
   };
@@ -339,7 +346,6 @@ const PetProfilePage: React.FC = () => {
       const petData = await getPetById(scannedId);
       if (petData) {
         alert(`Found Pet: ${petData.name} (SSP ID: ${scannedId})`);
-        // Additional logic could be added here to link the found pet
       } else {
         alert(`No pet found with SSP ID: ${scannedId}`);
       }
@@ -362,7 +368,7 @@ const PetProfilePage: React.FC = () => {
       <div className="flex flex-col md:flex-row items-center justify-between gap-8">
         <div>
           <h2 className="text-5xl font-black text-slate-900 tracking-tighter">My Pet Family</h2>
-          <p className="text-slate-500 font-medium">Manage your companions and track their wellness.</p>
+          <p className="text-slate-500 font-medium">Manage your companions and track their wellness journey.</p>
         </div>
         <div className="flex items-center gap-4">
           <button 
@@ -438,12 +444,12 @@ const PetProfilePage: React.FC = () => {
                   <div className="space-y-1">
                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Birthday</label>
                     <input type="date" required max={todayStr} value={isAdding ? newPet.birthday : selectedPet?.birthday} onChange={e => isAdding ? setNewPet({ ...newPet, birthday: e.target.value }) : setSelectedPet({...selectedPet!, birthday: e.target.value})} className="w-full bg-slate-50 border border-slate-100 p-4 rounded-2xl outline-none ring-theme focus:ring-4 transition-all" />
-                    <p className="text-[9px] font-bold text-slate-400 uppercase ml-1 mt-1">Cannot be a future date</p>
+                    <p className="text-[9px] font-bold text-slate-400 uppercase ml-1 mt-1">Birthday cannot be in the future</p>
                   </div>
               </div>
               <div className="space-y-1">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Short Biography</label>
-                <textarea value={isAdding ? newPet.bio : selectedPet?.bio} onChange={e => isAdding ? setNewPet({ ...newPet, bio: e.target.value }) : setSelectedPet({...selectedPet!, bio: e.target.value})} className="w-full h-32 bg-slate-50 border border-slate-100 p-4 rounded-2xl outline-none ring-theme focus:ring-4 transition-all resize-none" placeholder="Short bio..." />
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Biography</label>
+                <textarea value={isAdding ? newPet.bio : selectedPet?.bio} onChange={e => isAdding ? setNewPet({ ...newPet, bio: e.target.value }) : setSelectedPet({...selectedPet!, bio: e.target.value})} className="w-full h-32 bg-slate-50 border border-slate-100 p-4 rounded-2xl outline-none ring-theme focus:ring-4 transition-all resize-none" placeholder="Tell us about your pet's personality..." />
               </div>
               <button type="submit" className="w-full bg-theme text-white py-5 rounded-[2.5rem] font-black text-lg bg-theme-hover transition-all shadow-xl shadow-theme/20 flex items-center justify-center gap-3"><Save size={20} /> {isAdding ? 'Register Pet' : 'Save Changes'}</button>
             </form>
@@ -484,7 +490,7 @@ const PetProfilePage: React.FC = () => {
                 </div>
               </div>
             </div>
-            <div className="bg-slate-900 rounded-[3rem] p-8 text-white space-y-4 shadow-2xl relative overflow-hidden"><Quote className="absolute -top-2 -left-2 w-12 h-12 text-white/5" /><h4 className="font-black text-lg tracking-tight">AI Care Context</h4><p className="text-slate-400 text-sm leading-relaxed italic">"{selectedPet.bio || 'This companion is currently undergoing deep behavioral analysis.'}"</p></div>
+            <div className="bg-slate-900 rounded-[3rem] p-8 text-white space-y-4 shadow-2xl relative overflow-hidden"><Quote className="absolute -top-2 -left-2 w-12 h-12 text-white/5" /><h4 className="font-black text-lg tracking-tight">AI Care Context</h4><p className="text-slate-400 text-sm leading-relaxed italic">"{selectedPet.bio || 'This companion is currently undergoing deep profile analysis.'}"</p></div>
           </div>
           <div className="lg:col-span-2 space-y-10">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -495,21 +501,21 @@ const PetProfilePage: React.FC = () => {
               </div>
               <div className="bg-white p-8 rounded-[3rem] border border-slate-100 shadow-sm flex flex-col justify-between">
                 <div className="flex items-center gap-4 mb-6"><div className="p-3 bg-emerald-50 text-emerald-600 rounded-2xl"><Syringe size={24} /></div><h4 className="font-black text-slate-800 uppercase tracking-widest text-[10px]">Next Vaccination</h4></div>
-                <div className="mb-6"><p className="text-2xl font-black text-slate-700 truncate">{healthSummary?.nextVaccine?.name || 'All Current'}</p><p className="text-xs font-black text-emerald-600 uppercase tracking-widest mt-1">{healthSummary?.nextVaccine ? `Due Date: ${healthSummary.nextVaccine.nextDueDate}` : 'Vaccination record is healthy'}</p></div>
+                <div className="mb-6"><p className="text-2xl font-black text-slate-700 truncate">{healthSummary?.nextVaccine?.name || 'Up to Date'}</p><p className="text-xs font-black text-emerald-600 uppercase tracking-widest mt-1">{healthSummary?.nextVaccine ? `Due: ${healthSummary.nextVaccine.nextDueDate}` : 'Schedule is healthy'}</p></div>
               </div>
             </div>
             <div className="bg-white rounded-[3.5rem] border border-slate-100 shadow-sm overflow-hidden flex flex-col">
-              <div className="p-10 border-b border-slate-50 bg-gradient-to-r from-indigo-50/50 to-white flex items-center justify-between"><div className="flex items-center gap-4"><div className="p-3 bg-indigo-600 text-white rounded-2xl shadow-lg shadow-indigo-100"><Brain size={24} /></div><div><h4 className="text-2xl font-black text-slate-800 tracking-tight">AI Health Advisor</h4><p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-0.5">Automated Clinical Insights</p></div></div>{!healthReport && !isGeneratingHealthReport && (<button onClick={generateHealthInsights} className="bg-indigo-600 text-white px-6 py-3 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl shadow-indigo-100">Analyze Health</button>)}</div>
+              <div className="p-10 border-b border-slate-50 bg-gradient-to-r from-indigo-50/50 to-white flex items-center justify-between"><div className="flex items-center gap-4"><div className="p-3 bg-indigo-600 text-white rounded-2xl shadow-lg shadow-indigo-100"><Brain size={24} /></div><div><h4 className="text-2xl font-black text-slate-800 tracking-tight">AI Health Advisor</h4><p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-0.5">Automated Clinical Insights</p></div></div>{!healthReport && !isGeneratingHealthReport && (<button onClick={generateHealthInsights} className="bg-indigo-600 text-white px-6 py-3 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl shadow-indigo-100">Analyze Profile</button>)}</div>
               <div className="p-10 min-h-[150px] flex flex-col items-center justify-center">
-                {isGeneratingHealthReport ? (<div className="text-center space-y-4 py-10"><Loader2 size={48} className="animate-spin text-theme mx-auto" /><div className="space-y-1"><p className="font-black text-slate-800 text-lg">Consulting AI Veterinarian...</p></div></div>) : healthReport ? (<div className="w-full prose prose-slate prose-indigo max-w-none text-slate-600"><div className="space-y-6">{healthReport.split('\n').map((line, i) => { const trimmed = line.trim(); if (trimmed.startsWith('##')) return <h5 key={i} className="text-xl font-black text-slate-900 mt-6 mb-2 border-b-2 border-theme-light inline-block">{trimmed.replace('##', '')}</h5>; if (trimmed.startsWith('*') || trimmed.startsWith('-')) return <li key={i} className="ml-4 mb-2 font-medium list-disc leading-relaxed">{trimmed.replace(/^[\*\-]\s/, '')}</li>; return <p key={i} className="leading-relaxed font-medium">{trimmed}</p>; })}</div><button onClick={generateHealthInsights} className="mt-10 text-[10px] font-black text-theme uppercase tracking-widest flex items-center gap-2 hover:underline"><RefreshCcw size={12} /> Refresh Medical Insights</button></div>) : (<div className="text-center space-y-4 py-6"><div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mx-auto"><Sparkles className="text-slate-200" size={32} /></div><p className="text-slate-400 font-medium italic">No recent analysis. Tap 'Analyze Health' to process your pet's record.</p></div>)}
+                {isGeneratingHealthReport ? (<div className="text-center space-y-4 py-10"><Loader2 size={48} className="animate-spin text-theme mx-auto" /><div className="space-y-1"><p className="font-black text-slate-800 text-lg">Consulting AI Veterinarian...</p></div></div>) : healthReport ? (<div className="w-full prose prose-slate prose-indigo max-w-none text-slate-600"><div className="space-y-6">{healthReport.split('\n').map((line, i) => { const trimmed = line.trim(); if (trimmed.startsWith('##')) return <h5 key={i} className="text-xl font-black text-slate-900 mt-6 mb-2 border-b-2 border-theme-light inline-block">{trimmed.replace('##', '')}</h5>; if (trimmed.startsWith('*') || trimmed.startsWith('-')) return <li key={i} className="ml-4 mb-2 font-medium list-disc leading-relaxed">{trimmed.replace(/^[\*\-]\s/, '')}</li>; return <p key={i} className="leading-relaxed font-medium">{trimmed}</p>; })}</div><button onClick={generateHealthInsights} className="mt-10 text-[10px] font-black text-theme uppercase tracking-widest flex items-center gap-2 hover:underline"><RefreshCcw size={12} /> Refresh Insights</button></div>) : (<div className="text-center space-y-4 py-6"><div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mx-auto"><Sparkles className="text-slate-200" size={32} /></div><p className="text-slate-400 font-medium italic">No recent analysis. Tap 'Analyze Profile' to process your pet's data.</p></div>)}
               </div>
             </div>
-            <div className="bg-white rounded-[3.5rem] p-10 border border-slate-100 shadow-sm"><div className="flex items-center justify-between mb-8"><h4 className="text-2xl font-black text-slate-800 flex items-center gap-3"><LineChart className="text-theme" /> Vital Statistics</h4></div><div className="space-y-4 max-h-[400px] overflow-y-auto pr-4 custom-scrollbar">{selectedPet.weightHistory.length > 0 ? selectedPet.weightHistory.map((w, idx) => (<div key={idx} className="flex items-center justify-between p-5 bg-slate-50/50 rounded-3xl border border-white hover:bg-slate-50 transition-colors"><div className="flex items-center gap-4"><div className="w-2 h-2 rounded-full bg-theme opacity-60"></div><span className="font-black text-slate-400 text-xs uppercase tracking-widest">{new Date(w.date).toLocaleDateString()}</span></div><span className="font-black text-slate-800 text-xl">{w.weight} kg</span></div>)) : <div className="py-20 text-center text-slate-400 font-medium italic">No vital records found.</div>}</div></div>
-            <div className="flex justify-end pt-4"><button onClick={() => { if(window.confirm("Permanently remove this pet profile?")) { const updated = pets.filter(p => p.id !== selectedPet.id); savePetsToStorage(updated); setSelectedPet(updated[0] || null); } }} className="flex items-center gap-2 text-rose-500 font-black text-xs uppercase tracking-widest hover:text-rose-700 transition-all"><Trash2 size={16} /> Delete Companion Profile</button></div>
+            <div className="bg-white rounded-[3.5rem] p-10 border border-slate-100 shadow-sm"><div className="flex items-center justify-between mb-8"><h4 className="text-2xl font-black text-slate-800 flex items-center gap-3"><LineChart className="text-theme" /> Vital Statistics</h4></div><div className="space-y-4 max-h-[400px] overflow-y-auto pr-4 custom-scrollbar">{selectedPet.weightHistory.length > 0 ? selectedPet.weightHistory.map((w, idx) => (<div key={idx} className="flex items-center justify-between p-5 bg-slate-50/50 rounded-3xl border border-white hover:bg-slate-50 transition-colors"><div className="flex items-center gap-4"><div className="w-2 h-2 rounded-full bg-theme opacity-60"></div><span className="font-black text-slate-400 text-xs uppercase tracking-widest">{new Date(w.date).toLocaleDateString()}</span></div><span className="font-black text-slate-800 text-xl">{w.weight} kg</span></div>)) : <div className="py-20 text-center text-slate-400 font-medium italic">No vital records logged yet.</div>}</div></div>
+            <div className="flex justify-end pt-4"><button onClick={() => { if(window.confirm("Permanently remove this pet profile?")) { const updated = pets.filter(p => p.id !== selectedPet.id); savePetsToStorage(updated); setSelectedPet(updated[0] || null); } }} className="flex items-center gap-2 text-rose-500 font-black text-xs uppercase tracking-widest hover:text-rose-700 transition-all"><Trash2 size={16} /> Delete Profile</button></div>
           </div>
         </div>
       ) : (
-        <div className="py-32 text-center"><div className="bg-theme-light w-24 h-24 rounded-[3rem] flex items-center justify-center mx-auto mb-8 text-theme shadow-inner"><Dog size={48} /></div><h3 className="text-3xl font-black text-slate-900 mb-4 tracking-tight">Family Registry Empty</h3><p className="text-slate-500 font-medium mb-10 max-w-sm mx-auto">Register your companions to track their health and behavior.</p><button onClick={() => { setStep(1); setIsAdding(true); }} className="bg-theme text-white px-10 py-5 rounded-[2rem] font-black shadow-2xl shadow-theme/20 bg-theme-hover transition-all active:scale-95">Add First Pet</button></div>
+        <div className="py-32 text-center"><div className="bg-theme-light w-24 h-24 rounded-[3rem] flex items-center justify-center mx-auto mb-8 text-theme shadow-inner"><Dog size={48} /></div><h3 className="text-3xl font-black text-slate-900 mb-4 tracking-tight">Family Registry Empty</h3><p className="text-slate-500 font-medium mb-10 max-w-sm mx-auto">Register your companions to unlock custom health tracking and behavioral monitoring.</p><button onClick={() => { setStep(1); setIsAdding(true); }} className="bg-theme text-white px-10 py-5 rounded-[2rem] font-black shadow-2xl shadow-theme/20 bg-theme-hover transition-all active:scale-95">Add First Pet</button></div>
       )}
     </div>
   );
@@ -517,7 +523,6 @@ const PetProfilePage: React.FC = () => {
 
 const AppContent: React.FC = () => {
   useEffect(() => {
-    // Immediate dismissal of preloader to avoid FOUC and stuck state
     const preloader = document.getElementById('preloader');
     if (preloader) {
       preloader.classList.add('fade-out');
