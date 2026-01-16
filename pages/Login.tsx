@@ -136,22 +136,23 @@ const Login: React.FC = () => {
   };
   
   const AppleIcon = () => (
-    <svg className="w-5 h-5" viewBox="0 0 384 512" fill="currentColor">
-      <path d="M318.7 268.7c-.2-36.7 16.4-64.4 50-84.8-18.8-26.9-47.2-41.7-84.7-44.6-35.5-2.8-74.3 21.8-88.5 21.8-11.4 0-51.1-22.1-82.6-22.1-41.9 0-80.6 24.1-102.2 61.9-43.2 75.3-11.1 185.9 31.5 247.4 20.8 29.9 45.3 63.6 77.3 62.6 31.1-1 42.8-20.1 80.5-20.1 37.7 0 48.6 20.1 80.5 19.3 32.7-.8 53.7-30.5 73.8-60 23.2-33.9 32.7-66.8 33-68.5-.8-.4-64.1-24.6-64.4-97.5zm-58.5-157.4c16-19.7 26.8-47 23.8-74.3-23.3 1-51.3 15.6-68 35.3-14.9 17.5-28 45.3-24.5 71.5 26.1 2 52.7-12.8 68.7-32.5z"/>
+    <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+      <path d="M12.1522 6.40074C10.7439 6.40074 9.17631 7.2334 8.44143 7.2334C7.70654 7.2334 6.40114 6.48422 5.2587 6.48422C3.76344 6.48422 1 7.61908 1 11.458C1 15.3134 3.42413 21.0157 5.17431 21.0157C6.03947 21.0157 6.37837 20.4478 7.42456 20.4478C8.47076 20.4478 8.86641 21.0157 9.77114 21.0157C10.6759 21.0157 13.0645 15.1128 13.0645 11.2355C13.0645 11.1965 13.0645 11.1576 13.0645 11.1187C13.0645 8.76106 11.2334 6.40074 12.1522 6.40074Z" />
+      <path d="M10.8718 2.5C9.36219 2.68415 8.01255 3.52044 7.21817 4.74233C6.42379 5.96422 6.30752 7.35515 6.90141 8.5C8.44474 8.4116 9.87321 7.5147 10.6406 6.20815C11.408 4.9016 11.3983 3.3934 10.8718 2.5Z" />
     </svg>
   );
 
   return (
-    <div className="min-h-screen bg-[#f8fafc] flex items-center justify-center p-6">
-      <div className="max-w-md w-full bg-white rounded-[2.5rem] shadow-[0_20px_60px_-15px_rgba(0,0,0,0.05)] border border-slate-100 p-8 md:p-12 animate-in fade-in zoom-in-95 duration-500">
+    <div className="min-h-screen bg-[#f8fafc] flex items-center justify-center p-6 font-inter">
+      <div className="max-w-md w-full bg-white rounded-[3rem] shadow-[0_40px_100px_-20px_rgba(0,0,0,0.08)] border border-slate-100 p-8 md:p-12 animate-in fade-in zoom-in-95 duration-700">
         <div className="mb-10 text-center">
-          <div className="w-24 h-24 bg-white rounded-3xl p-3 flex items-center justify-center shadow-2xl border border-slate-50 mx-auto mb-6 group hover:rotate-6 transition-transform">
+          <div className="w-24 h-24 bg-white rounded-3xl p-3 flex items-center justify-center shadow-2xl shadow-slate-200 border border-slate-50 mx-auto mb-6 group hover:rotate-6 transition-transform">
             <img src={LOGO_URL} alt="Logo" className="w-full h-full object-contain" />
           </div>
-          <h1 className="text-3xl font-black text-[#0f172a] tracking-tight">
-            {isLogin ? "Welcome Back" : "Start Journey"}
+          <h1 className="text-3xl font-black text-[#0f172a] tracking-tighter">
+            {isLogin ? "Welcome Back" : "Join the Pack"}
           </h1>
-          <p className="text-slate-400 text-sm mt-2 font-bold uppercase tracking-widest">SS Paw Pal Hub</p>
+          <p className="text-slate-400 text-xs mt-2 font-black uppercase tracking-[0.2em]">SS Paw Pal Hub</p>
         </div>
 
         {error && !verificationNeeded && (
@@ -169,13 +170,13 @@ const Login: React.FC = () => {
         )}
 
         {verificationNeeded && (
-          <div className="mb-8 p-6 bg-indigo-50 border border-indigo-100 rounded-3xl space-y-4 animate-in zoom-in-95">
+          <div className="mb-8 p-6 bg-indigo-50 border border-indigo-100 rounded-[2rem] space-y-4 animate-in zoom-in-95">
             <div className="flex items-center gap-3 text-indigo-700">
               <MailCheck className="w-6 h-6" />
-              <h3 className="font-black text-sm uppercase tracking-tight">Verify Your Email</h3>
+              <h3 className="font-black text-sm uppercase tracking-tight">Verify Your Identity</h3>
             </div>
             <p className="text-xs text-indigo-600/80 font-medium leading-relaxed">
-              We've sent a magic link to your inbox. Please click it to activate your companion portal.
+              Check your inbox for a magic link to activate your portal.
             </p>
             <button 
               onClick={handleResend}
@@ -183,15 +184,39 @@ const Login: React.FC = () => {
               className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-indigo-600 hover:text-indigo-800 transition-colors disabled:opacity-50"
             >
               {isResending ? <RefreshCcw className="w-3 h-3 animate-spin" /> : <RefreshCcw className="w-3 h-3" />}
-              Resend verification link
+              Resend magic link
             </button>
           </div>
         )}
 
+        <div className="flex flex-col gap-4 mb-8">
+            <button 
+              onClick={handleGoogleLogin} 
+              disabled={isLoading} 
+              className="flex items-center justify-center gap-3 bg-white border border-slate-100 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest text-slate-700 hover:bg-slate-50 transition-all active:scale-[0.98] disabled:opacity-50 shadow-sm"
+            >
+              <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" className="w-5 h-5" alt="Google" />
+              Continue with Google
+            </button>
+            <button 
+              onClick={handleAppleLogin} 
+              disabled={isLoading} 
+              className="flex items-center justify-center gap-3 bg-slate-900 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest text-white hover:bg-black transition-all active:scale-[0.98] disabled:opacity-50 shadow-xl"
+            >
+              <AppleIcon />
+              Continue with Apple
+            </button>
+            <div className="flex items-center gap-4 text-slate-200 mt-2">
+              <div className="h-px flex-1 bg-slate-100"></div>
+              <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest">or use email</span>
+              <div className="h-px flex-1 bg-slate-100"></div>
+            </div>
+        </div>
+
         <form onSubmit={handleSubmit} className="space-y-6">
           {!isLogin && (
             <div className="space-y-1.5">
-              <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Full Name</label>
+              <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Guardian Name</label>
               <input 
                 required 
                 name="fullName" 
@@ -199,7 +224,7 @@ const Login: React.FC = () => {
                 placeholder="Pet Parent Name" 
                 value={formData.fullName} 
                 onChange={handleChange} 
-                className="w-full bg-slate-50 border border-slate-100 rounded-2xl py-4 px-5 text-sm font-bold text-slate-900 focus:bg-white focus:ring-4 focus:ring-indigo-500/5 outline-none transition-all placeholder:text-slate-300" 
+                className="w-full bg-slate-50 border border-slate-100 rounded-2xl py-4 px-6 text-sm font-bold text-slate-900 focus:bg-white focus:ring-4 focus:ring-slate-50 outline-none transition-all placeholder:text-slate-300" 
               />
             </div>
           )}
@@ -212,30 +237,30 @@ const Login: React.FC = () => {
               required 
               name="identifier" 
               type={isLogin ? "text" : "email"} 
-              placeholder={isLogin ? "example@email.com" : "your@email.com"} 
+              placeholder={isLogin ? "Enter handle or email" : "hello@example.com"} 
               value={formData.identifier} 
               onChange={handleChange} 
-              className="w-full bg-slate-50 border border-slate-100 rounded-2xl py-4 px-5 text-sm font-bold text-slate-900 focus:bg-white focus:ring-4 focus:ring-indigo-500/5 outline-none transition-all placeholder:text-slate-300" 
+              className="w-full bg-slate-50 border border-slate-100 rounded-2xl py-4 px-6 text-sm font-bold text-slate-900 focus:bg-white focus:ring-4 focus:ring-slate-50 outline-none transition-all placeholder:text-slate-300" 
             />
           </div>
 
           {!isLogin && (
             <div className="space-y-1.5">
-              <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Username</label>
+              <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Handle</label>
               <input 
                 required 
                 name="username" 
                 type="text" 
-                placeholder="unique_handle" 
+                placeholder="unique_username" 
                 value={formData.username} 
                 onChange={handleChange} 
-                className="w-full bg-slate-50 border border-slate-100 rounded-2xl py-4 px-5 text-sm font-bold text-slate-900 focus:bg-white focus:ring-4 focus:ring-indigo-500/5 outline-none transition-all placeholder:text-slate-300" 
+                className="w-full bg-slate-50 border border-slate-100 rounded-2xl py-4 px-6 text-sm font-bold text-slate-900 focus:bg-white focus:ring-4 focus:ring-slate-50 outline-none transition-all placeholder:text-slate-300" 
               />
             </div>
           )}
 
           <div className="space-y-1.5">
-            <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Password</label>
+            <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Secret Key</label>
             <div className="relative">
               <input 
                 required 
@@ -244,7 +269,7 @@ const Login: React.FC = () => {
                 placeholder="••••••••" 
                 value={formData.password} 
                 onChange={handleChange} 
-                className="w-full bg-slate-50 border border-slate-100 rounded-2xl py-4 px-5 pr-14 text-sm font-bold text-slate-900 focus:bg-white focus:ring-4 focus:ring-indigo-500/5 outline-none transition-all placeholder:text-slate-300" 
+                className="w-full bg-slate-50 border border-slate-100 rounded-2xl py-4 px-6 pr-14 text-sm font-bold text-slate-900 focus:bg-white focus:ring-4 focus:ring-slate-50 outline-none transition-all placeholder:text-slate-300" 
               />
               <button 
                 type="button"
@@ -258,7 +283,7 @@ const Login: React.FC = () => {
 
           {!isLogin && (
             <div className="space-y-1.5">
-              <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Confirm Password</label>
+              <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Repeat Key</label>
               <div className="relative">
                 <input 
                   required 
@@ -267,7 +292,7 @@ const Login: React.FC = () => {
                   placeholder="••••••••" 
                   value={formData.confirmPassword} 
                   onChange={handleChange} 
-                  className="w-full bg-slate-50 border border-slate-100 rounded-2xl py-4 px-5 pr-14 text-sm font-bold text-slate-900 focus:bg-white focus:ring-4 focus:ring-indigo-500/5 outline-none transition-all placeholder:text-slate-300" 
+                  className="w-full bg-slate-50 border border-slate-100 rounded-2xl py-4 px-6 pr-14 text-sm font-bold text-slate-900 focus:bg-white focus:ring-4 focus:ring-slate-50 outline-none transition-all placeholder:text-slate-300" 
                 />
                 <button 
                   type="button"
@@ -287,10 +312,10 @@ const Login: React.FC = () => {
                 type="checkbox" 
                 checked={agreedToTerms}
                 onChange={(e) => setAgreedToTerms(e.target.checked)}
-                className="mt-1 w-4 h-4 rounded-lg border-slate-200 text-indigo-600 focus:ring-indigo-500/20"
+                className="mt-1 w-4 h-4 rounded-lg border-slate-200 text-slate-900 focus:ring-slate-100"
               />
               <label htmlFor="terms" className="text-[11px] text-slate-500 font-bold leading-tight">
-                I agree with the <Link to={AppRoutes.TERMS} className="text-slate-900 underline hover:text-indigo-600">Terms</Link> and <Link to={AppRoutes.PRIVACY} className="text-slate-900 underline hover:text-indigo-600">Privacy Policy</Link>.
+                I agree to the <Link to={AppRoutes.TERMS} className="text-slate-900 underline hover:text-slate-700">Terms</Link> and <Link to={AppRoutes.PRIVACY} className="text-slate-900 underline hover:text-slate-700">Privacy Policy</Link>.
               </label>
             </div>
           )}
@@ -298,48 +323,22 @@ const Login: React.FC = () => {
           <button 
             type="submit" 
             disabled={isLoading} 
-            className="w-full bg-slate-900 text-white py-5 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-black transition-all active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-3 shadow-xl"
+            className="w-full bg-slate-900 text-white py-5 rounded-[1.5rem] font-black text-xs uppercase tracking-widest hover:bg-black transition-all active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-3 shadow-2xl shadow-slate-200"
           >
-            {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : (isLogin ? "Secure Login" : "Create Account")}
+            {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : (isLogin ? "Authenticate" : "Create Account")}
           </button>
         </form>
 
         <div className="mt-10 pt-8 border-t border-slate-50 text-center">
           <p className="text-slate-400 text-xs font-bold uppercase tracking-widest">
-            {isLogin ? "No account?" : "Already member?"}
+            {isLogin ? "New to Paw Pal?" : "Member already?"}
             <button 
               onClick={() => { setIsLogin(!isLogin); setError(''); setSuccessMessage(''); setVerificationNeeded(false); }} 
-              className="ml-2 text-indigo-600 hover:text-indigo-800 transition-colors"
+              className="ml-2 text-slate-900 hover:underline transition-all"
             >
-              {isLogin ? "Sign up" : "Log in"}
+              {isLogin ? "Join Now" : "Sign In"}
             </button>
           </p>
-        </div>
-
-        <div className="mt-8 flex flex-col gap-4">
-            <div className="flex items-center gap-4 text-slate-200">
-              <div className="h-px flex-1 bg-slate-100"></div>
-              <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest">or social portal</span>
-              <div className="h-px flex-1 bg-slate-100"></div>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <button 
-                onClick={handleGoogleLogin} 
-                disabled={isLoading} 
-                className="flex items-center justify-center gap-2 bg-white border border-slate-100 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest text-slate-600 hover:bg-slate-50 transition-all active:scale-[0.98] disabled:opacity-50 shadow-sm"
-              >
-                <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" className="w-4 h-4" alt="Google" />
-                Google
-              </button>
-              <button 
-                onClick={handleAppleLogin} 
-                disabled={isLoading} 
-                className="flex items-center justify-center gap-2 bg-black py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest text-white hover:bg-slate-800 transition-all active:scale-[0.98] disabled:opacity-50 shadow-xl"
-              >
-                <AppleIcon />
-                Apple
-              </button>
-            </div>
         </div>
       </div>
     </div>
