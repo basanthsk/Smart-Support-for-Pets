@@ -78,23 +78,22 @@ ${petContext}
     const currentInput = prompt || input;
     if (!currentInput.trim() || isLoading) return;
 
+    const userMessage: Message = { role: 'user', text: currentInput };
+    const updatedMessages = [...messages, userMessage];
+    
+    setMessages(updatedMessages);
     setInput('');
     setIsLoading(true);
-
-    const userMessage: Message = { role: 'user', text: currentInput };
-    setMessages(prev => [...prev, userMessage]);
 
     try {
       const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
       
-      const chatHistory = messages.map(msg => ({
-        role: msg.role,
-        parts: [{ text: msg.text }]
-      }));
-
+      const CONTEXT_WINDOW_SIZE = 10;
+      const apiMessages = updatedMessages.slice(-CONTEXT_WINDOW_SIZE);
+      
       const streamResponse = await ai.models.generateContentStream({
         model: 'gemini-3-flash-preview',
-        contents: [...chatHistory, { role: 'user', parts: [{ text: currentInput }] }],
+        contents: apiMessages.map(msg => ({ role: msg.role, parts: [{ text: msg.text }] })),
         config: {
           systemInstruction: systemInstruction,
         },
