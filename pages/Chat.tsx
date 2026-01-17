@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { 
   Send, 
@@ -21,7 +22,7 @@ import {
   doc, 
   getDoc,
   Timestamp 
-} from "firebase/firestore";
+} from 'firebase/firestore';
 import { ChatSession, ChatMessage } from '../types';
 
 const Chat: React.FC = () => {

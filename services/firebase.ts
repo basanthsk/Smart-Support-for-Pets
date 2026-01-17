@@ -1,22 +1,19 @@
 
-// Import the functions you need from the SDKs you need
-import { initializeApp } from "firebase/app";
-// TODO: Add SDKs for Firebase products that you want to use
-// https://firebase.google.com/docs/web/setup#available-libraries
-
-// Your web app's Firebase configuration
-const firebaseConfig = {
-  apiKey: "AIzaSyCVUMhFhDzfbvF-iXthH6StOlI6mJreTmA",
-  authDomain: "smart-support-for-pets.firebaseapp.com",
-  databaseURL: "https://smart-support-for-pets-default-rtdb.asia-southeast1.firebasedatabase.app",
-  projectId: "smart-support-for-pets",
-  storageBucket: "smart-support-for-pets.firebasestorage.app",
-  messagingSenderId: "737739952686",
-  appId: "1:737739952686:web:17ecad5079401fb6ee05bf"
-};
-
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
+// Use standard Firebase modular SDK imports
+import { initializeApp } from 'firebase/app';
+import { 
+  getAuth, 
+  signOut, 
+  onAuthStateChanged, 
+  GoogleAuthProvider,
+  OAuthProvider,
+  signInWithPopup,
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  updateProfile,
+  sendEmailVerification
+} from 'firebase/auth';
+import type { User as FirebaseUser } from 'firebase/auth';
 import { 
   getFirestore, 
   doc, 
@@ -35,15 +32,11 @@ import {
   writeBatch,
   orderBy,
   startAfter,
-  QueryDocumentSnapshot,
   documentId
-} from "firebase/firestore";
+} from 'firebase/firestore';
+import type { QueryDocumentSnapshot } from 'firebase/firestore';
 import { User as AppUser, PetProfile, FollowStatus } from '../types';
 
-// Aliasing User from Firebase to FirebaseUser to avoid confusion with internal User type
-type FirebaseUser = User;
-
-// Initialize Firebase with modular SDK
 const firebaseConfig = {
   apiKey: "AIzaSyCVUMhFhDzfbvF-iXthH6StOlI6mJreTmA",
   authDomain: "smart-support-for-pets.firebaseapp.com",

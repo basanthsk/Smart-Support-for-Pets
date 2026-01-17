@@ -4,7 +4,7 @@ import { Search, Loader2, User as UserIcon, AtSign, Users, ArrowRight, ChevronDo
 import { getUsersPaginated } from '../services/firebase';
 import { Link } from 'react-router-dom';
 import { User } from '../types';
-import { QueryDocumentSnapshot } from 'firebase/firestore';
+import type { QueryDocumentSnapshot } from 'firebase/firestore';
 import FollowButton from '../components/FollowButton';
 
 const PAGE_SIZE = 12;

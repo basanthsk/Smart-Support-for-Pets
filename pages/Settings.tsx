@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { 
   User as UserIcon, 
@@ -17,7 +18,7 @@ import {
 import { useAuth } from '../context/AuthContext';
 import { useNotifications } from '../context/NotificationContext';
 import { db, updateUserProfile, isUsernameTaken } from '../services/firebase';
-import { doc, getDoc } from "firebase/firestore";
+import { doc, getDoc } from 'firebase/firestore';
 
 const THEME_PRESETS = [
   { name: 'Indigo', color: '#4f46e5' },
