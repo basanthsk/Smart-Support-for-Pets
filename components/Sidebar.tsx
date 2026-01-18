@@ -13,8 +13,7 @@ import {
   User as UserIcon,
   Search,
   LayoutDashboard,
-  Settings,
-  ShieldCheck
+  Settings
 } from 'lucide-react';
 import { AppRoutes } from '../types';
 import { logout } from '../services/firebase';
@@ -44,7 +43,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen, isCollapsed, setIs
       title: "Social Hub",
       items: [
         { label: 'Community', path: AppRoutes.CREATE_POST, icon: PlusSquare },
-        { label: 'Direct Messages', path: AppRoutes.CHAT, icon: Send },
+        { label: 'Messages', path: AppRoutes.CHAT, icon: Send },
         { label: 'Discovery', path: AppRoutes.FIND_FRIENDS, icon: Search },
       ]
     },
@@ -70,7 +69,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen, isCollapsed, setIs
 
   return (
     <>
-      {/* Mobile Backdrop */}
+      {/* Mobile Backdrop Overlay */}
       <div 
         className={`fixed inset-0 bg-slate-900/60 backdrop-blur-md z-[60] transition-opacity duration-500 md:hidden ${
           isOpen ? 'opacity-100 visible' : 'opacity-0 invisible pointer-events-none'
@@ -89,10 +88,10 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen, isCollapsed, setIs
         flex flex-col shadow-2xl md:shadow-none overflow-hidden
       `}>
         
-        {/* Sidebar Header */}
+        {/* Sidebar Header branding */}
         <div className="h-24 flex items-center px-6 shrink-0 border-b border-slate-50 relative">
           <Link to={AppRoutes.HOME} className="flex items-center gap-4 group">
-            <div className="w-12 h-12 bg-white border border-slate-100 rounded-2xl p-2.5 flex items-center justify-center shrink-0 shadow-lg group-hover:shadow-indigo-100 group-hover:rotate-6 transition-all duration-500">
+            <div className="w-12 h-12 bg-white border border-slate-100 rounded-2xl p-2.5 flex items-center justify-center shrink-0 shadow-lg group-hover:rotate-6 transition-all duration-500">
               <img src={LOGO_URL} alt="Logo" className="w-full h-full object-contain" />
             </div>
             {!isCollapsed && (
@@ -132,7 +131,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen, isCollapsed, setIs
                       className={`
                         group relative flex items-center gap-4 px-5 py-4 rounded-2xl transition-all duration-300
                         ${isActive 
-                          ? 'bg-slate-900 text-white shadow-xl shadow-indigo-50' 
+                          ? 'bg-slate-900 text-white shadow-xl' 
                           : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'}
                         active:scale-[0.97]
                         ${isCollapsed ? 'justify-center' : ''}
@@ -178,7 +177,6 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen, isCollapsed, setIs
                 <p className="text-[12px] font-black text-slate-900 truncate tracking-tight">@{user?.displayName?.split(' ')[0] || 'User'}</p>
                 <p className="text-[9px] text-slate-400 font-black uppercase tracking-[0.2em] truncate">Active Guardian</p>
               </div>
-              <Settings size={14} className="ml-auto text-slate-300 group-hover:text-indigo-600 transition-colors" />
             </Link>
           )}
           
