@@ -1,3 +1,4 @@
+
 import React from 'react';
 
 export enum AppRoutes {
@@ -49,6 +50,7 @@ export interface PetProfile {
   breed: string;
   birthday: string;
   bio: string;
+  temperament?: string;
   avatarUrl?: string;
   qrCodeUrl?: string;
   ageYears?: string;
