@@ -1,3 +1,4 @@
+
 import React from 'react';
 
 export enum AppRoutes {
@@ -49,6 +50,8 @@ export interface PetProfile {
   breed: string;
   birthday: string;
   bio: string;
+  // Added temperament property to fix type error in PetProfile.tsx
+  temperament?: string;
   avatarUrl?: string;
   qrCodeUrl?: string;
   ageYears?: string;
