@@ -1,12 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Loader2, AlertCircle, Eye, EyeOff, MailCheck, RefreshCcw, CheckCircle2 } from 'lucide-react';
+import { Loader2, AlertCircle, Eye, EyeOff, CheckCircle2 } from 'lucide-react';
 import { 
   loginWithGoogle, 
   loginWithApple, 
   loginWithIdentifier, 
-  signUpWithEmail, 
-  resendVerificationEmail,
-  logout 
+  signUpWithEmail 
 } from '../services/firebase';
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from '../context/AuthContext';
@@ -24,8 +22,9 @@ const validateUsername = (username: string) => {
 };
 
 const validatePassword = (password: string) => {
-  // At least 8 characters, 1 uppercase, 1 lowercase, 1 number
-  const re = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[a-zA-Z\d]{8,}$/;
+  // At least 8 characters, 1 uppercase, 1 lowercase, 1 number. 
+  // Changed regex to allow special characters (using . instead of [a-zA-Z\d])
+  const re = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/;
   return re.test(password);
 };
 
