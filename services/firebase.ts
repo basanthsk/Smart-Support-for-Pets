@@ -1,5 +1,4 @@
-// FIX: Changed import to use scoped @firebase/app package to resolve module error.
-import { initializeApp } from "@firebase/app";
+import { initializeApp } from "firebase/app";
 import { 
   getAuth, 
   signOut, 
