@@ -1,4 +1,3 @@
-
 import React from 'react';
 
 export enum AppRoutes {
@@ -50,8 +49,6 @@ export interface PetProfile {
   breed: string;
   birthday: string;
   bio: string;
-  temperament?: string;
-  preferredStyle?: string;
   avatarUrl?: string;
   qrCodeUrl?: string;
   ageYears?: string;
@@ -64,6 +61,7 @@ export interface PetProfile {
   lowercaseName?: string;
 }
 
+// FIX: Add missing Post interface used in Community.tsx
 export interface Post {
   id: string;
   user: string;
@@ -107,9 +105,10 @@ export interface AppNotification {
   type: 'info' | 'success' | 'warning' | 'error' | 'follow_request';
   timestamp: any;
   read: boolean;
+  // Fields for user-to-user notifications
   fromUserId?: string;
   fromUserName?: string;
-  relatedId?: string;
+  relatedId?: string; // e.g., the ID of the follow document
 }
 
 export type FollowStatus = 'not_following' | 'pending' | 'following' | 'is_self';
