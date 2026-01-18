@@ -23,7 +23,7 @@ const validateUsername = (username: string) => {
 
 const validatePassword = (password: string) => {
   // At least 8 characters, 1 uppercase, 1 lowercase, 1 number. 
-  // Changed regex to allow special characters (using . instead of [a-zA-Z\d])
+  // Supports special characters as well.
   const re = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/;
   return re.test(password);
 };
