@@ -1,3 +1,4 @@
+
 import { initializeApp } from "firebase/app";
 import { 
   getAuth, 
@@ -183,15 +184,36 @@ export const resendVerificationEmail = async () => {
 };
 export const updateUserProfile = async (uid: string, data: { displayName?: string, username?: string, phoneNumber?: string }) => {
   const { displayName, username, phoneNumber } = data;
-  if (username && (await isUsernameTaken(username, uid))) throw new Error("Username already taken.");
+  
+  const trimmedUsername = username?.trim();
+  if (trimmedUsername && (await isUsernameTaken(trimmedUsername, uid))) {
+      throw new Error("Username already taken.");
+  }
+
   const user = auth.currentUser;
-  if (user && user.uid === uid && displayName && displayName !== user.displayName) await updateProfile(user, { displayName });
+  const trimmedDisplayName = displayName?.trim();
+
+  if (user && user.uid === uid && trimmedDisplayName && trimmedDisplayName !== user.displayName) {
+    await updateProfile(user, { displayName: trimmedDisplayName });
+  }
+
   const userRef = doc(db, "users", uid);
   const updateData: any = {};
-  if (displayName !== undefined) { updateData.displayName = displayName; updateData.lowercaseDisplayName = displayName.toLowerCase(); }
-  if (username !== undefined) updateData.username = username.toLowerCase().trim();
-  if (phoneNumber !== undefined) updateData.phoneNumber = phoneNumber;
-  if (Object.keys(updateData).length > 0) await updateDoc(userRef, updateData);
+  
+  if (trimmedDisplayName !== undefined) { 
+    updateData.displayName = trimmedDisplayName; 
+    updateData.lowercaseDisplayName = trimmedDisplayName.toLowerCase(); 
+  }
+  if (trimmedUsername !== undefined) {
+    updateData.username = trimmedUsername.toLowerCase();
+  }
+  if (phoneNumber !== undefined) {
+    updateData.phoneNumber = phoneNumber;
+  }
+  
+  if (Object.keys(updateData).length > 0) {
+    await updateDoc(userRef, updateData);
+  }
 };
 export const startChat = async (currentUserId: string, targetUserId: string): Promise<string> => {
   const participants = [currentUserId, targetUserId].sort();

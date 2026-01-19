@@ -175,33 +175,66 @@ const Settings: React.FC = () => {
     addNotification('Primary Color Updated', 'Branding preferences updated.', 'success');
   };
 
+  const isPhoneNumberInvalid = !!phoneValidationError && editData.phoneNumber.trim().length > 0;
+
   const handleSaveProfile = async () => {
-    if (!user || usernameTakenStatus === 'taken' || isValidatingUsername) return;
+    if (!user || usernameTakenStatus === 'taken' || isValidatingUsername || isPhoneNumberInvalid) return;
+
     setIsSaving(true);
     setSaveStatus(null);
+
     try {
-      const fullPhoneNumber = editData.phoneNumber.trim() ? `${editData.phoneCode} ${editData.phoneNumber.trim()}` : '';
-      await updateUserProfile(user.uid, { displayName: editData.displayName, username: editData.username, phoneNumber: fullPhoneNumber });
+      const trimmedDisplayName = editData.displayName.trim();
+      const trimmedUsername = editData.username.trim();
+      const fullPhoneNumber = editData.phoneNumber.trim() ? `${editData.phoneCode.trim()} ${editData.phoneNumber.trim()}` : '';
+
+      if (!trimmedUsername) {
+        setSaveStatus({ message: 'Username cannot be empty.', type: 'error' });
+        setIsSaving(false);
+        return;
+      }
+      
+      await updateUserProfile(user.uid, { 
+        displayName: trimmedDisplayName, 
+        username: trimmedUsername, 
+        phoneNumber: fullPhoneNumber 
+      });
+      
       const { phoneCode, phoneNumber } = parsePhoneNumber(fullPhoneNumber);
-      setDbUser((prev: any) => ({ ...prev, displayName: editData.displayName, username: editData.username.toLowerCase(), phoneNumber: fullPhoneNumber }));
-      setEditData(prev => ({ ...prev, phoneCode, phoneNumber }));
-      setSaveStatus({ message: 'Profile updated successfully!', type: 'success' });
+
+      setDbUser((prev: any) => ({ 
+        ...prev, 
+        displayName: trimmedDisplayName, 
+        username: trimmedUsername.toLowerCase(), 
+        phoneNumber: fullPhoneNumber 
+      }));
+      setEditData(prev => ({ 
+        ...prev, 
+        displayName: trimmedDisplayName, 
+        username: trimmedUsername, 
+        phoneCode, 
+        phoneNumber 
+      }));
+      
+      const successStatus = { message: 'Profile updated successfully!', type: 'success' as const };
+      setSaveStatus(successStatus);
+      setTimeout(() => {
+        setSaveStatus(currentStatus => (currentStatus && currentStatus.message === successStatus.message ? null : currentStatus));
+      }, 5000);
+
       setIsEditing(false);
       setUsernameTakenStatus('none');
       addNotification('Profile Updated', 'Identity synced successfully.', 'success');
+
     } catch (error: any) {
       console.error("Profile update failed:", error);
       const msg = error.message?.includes("taken") ? "That username is already taken. Please try another." : (error.message || 'Update failed.');
       setSaveStatus({ message: msg, type: 'error' });
     } finally {
       setIsSaving(false);
-      if (!saveStatus || saveStatus.type === 'success') {
-        setTimeout(() => setSaveStatus(null), 5000);
-      }
     }
   };
 
-  const isPhoneNumberInvalid = !!phoneValidationError && editData.phoneNumber.trim().length > 0;
   const isSaveDisabled = isSaving || isValidatingUsername || usernameTakenStatus === 'taken' || !editData.username.trim() || isPhoneNumberInvalid;
 
   return (
