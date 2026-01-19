@@ -60,6 +60,7 @@ const Settings: React.FC = () => {
   
   const [isValidatingUsername, setIsValidatingUsername] = useState(false);
   const [usernameTakenStatus, setUsernameTakenStatus] = useState<'available' | 'taken' | 'none'>('none');
+  const [phoneValidationError, setPhoneValidationError] = useState<string | null>(null);
 
   const [editData, setEditData] = useState({
     displayName: user?.displayName || '',
@@ -128,6 +129,38 @@ const Settings: React.FC = () => {
       return countryCodes.find(c => c.code === editData.phoneCode) || countryCodes.find(c => c.name === 'India');
   }, [editData.phoneCode]);
 
+  useEffect(() => {
+    if (!isEditing || !selectedCountry || !editData.phoneNumber) {
+      setPhoneValidationError(null);
+      return;
+    }
+  
+    const cleanNumber = editData.phoneNumber.replace(/[\s-]/g, '');
+    const numberLength = cleanNumber.length;
+    const expectedDigits = selectedCountry.digits;
+  
+    if (numberLength === 0) {
+      setPhoneValidationError(null);
+      return;
+    }
+  
+    if (expectedDigits.includes('-')) {
+      const [min, max] = expectedDigits.split('-').map(Number);
+      if (numberLength < min || numberLength > max) {
+        setPhoneValidationError(`Number must be ${min} to ${max} digits.`);
+      } else {
+        setPhoneValidationError(null);
+      }
+    } else {
+      const expectedLength = Number(expectedDigits);
+      if (numberLength !== expectedLength) {
+        setPhoneValidationError(`Number must be ${expectedLength} digits.`);
+      } else {
+        setPhoneValidationError(null);
+      }
+    }
+  }, [editData.phoneNumber, selectedCountry, isEditing]);
+
   const filteredCountryCodes = useMemo(() => {
       if (!countrySearchTerm) return countryCodes;
       const search = countrySearchTerm.toLowerCase();
@@ -168,7 +201,8 @@ const Settings: React.FC = () => {
     }
   };
 
-  const isSaveDisabled = isSaving || isValidatingUsername || usernameTakenStatus === 'taken' || !editData.username.trim();
+  const isPhoneNumberInvalid = !!phoneValidationError && editData.phoneNumber.trim().length > 0;
+  const isSaveDisabled = isSaving || isValidatingUsername || usernameTakenStatus === 'taken' || !editData.username.trim() || isPhoneNumberInvalid;
 
   return (
     <div className="max-w-4xl mx-auto pb-32 space-y-12 animate-fade-in">
@@ -221,7 +255,7 @@ const Settings: React.FC = () => {
                 
                 <div className="space-y-3">
                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-2">Phone Number</label>
-                  <div className={`relative flex items-center w-full rounded-[1.5rem] transition-all ${isEditing ? 'bg-slate-50 border border-slate-200 focus-within:bg-white focus-within:ring-4 ring-theme/10' : 'bg-slate-50/50 border-transparent'}`}>
+                  <div className={`relative flex items-center w-full rounded-[1.5rem] transition-all ${isEditing ? 'bg-slate-50 border focus-within:bg-white focus-within:ring-4 ring-theme/10' : 'bg-slate-50/50 border-transparent'} ${isPhoneNumberInvalid ? 'border-rose-300' : 'border-slate-200'}`}>
                     <div className="relative" ref={countryDropdownRef}>
                       <button type="button" disabled={!isEditing} onClick={() => setIsCountryDropdownOpen(prev => !prev)} className={`flex items-center gap-2 px-4 py-6 rounded-l-[1.5rem] ${isEditing ? 'cursor-pointer hover:bg-slate-100/50' : 'cursor-default'}`}>
                         <span className="text-xl">{selectedCountry?.flag}</span>
@@ -250,6 +284,13 @@ const Settings: React.FC = () => {
                     <div className="w-px h-8 bg-slate-200 self-center"></div>
                     <input readOnly={!isEditing} value={editData.phoneNumber} onChange={(e) => setEditData({...editData, phoneNumber: e.target.value.replace(/[^0-9\s-]/g, '')})} placeholder="Phone Number" className={`w-full p-6 bg-transparent text-lg font-bold text-slate-800 outline-none ${isEditing ? '' : 'cursor-default'}`} />
                   </div>
+                  {isEditing && <div className="px-2 min-h-[20px] transition-all">
+                    {isPhoneNumberInvalid ? (
+                      <p className="text-[10px] font-black uppercase tracking-widest text-rose-500">{phoneValidationError}</p>
+                    ) : (
+                      selectedCountry && <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Expected length: {selectedCountry.digits.replace('-', ' to ')} digits</p>
+                    )}
+                  </div>}
                 </div>
               </div>
 
