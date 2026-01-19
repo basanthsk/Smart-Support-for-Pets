@@ -98,10 +98,6 @@ export const getPetById = async (id: string) => {
   const snap = await getDoc(petRef);
   return snap.exists() ? { id: snap.id, ...snap.data() } as PetProfile : null;
 };
-export const deletePet = async (petId: string) => {
-  if (!petId) return;
-  await deleteDoc(doc(db, "pets", petId));
-};
 export const getUserById = async (id: string) => {
   if (!id) return null;
   const userRef = doc(db, "users", id);
@@ -231,14 +227,12 @@ export const requestFollow = async (followerId: string, followerName: string, fo
   // Create notification for the user being followed
   await addDoc(collection(db, "notifications"), {
     userId: followingId,
-    title: "Follow Request",
     type: 'follow_request',
     fromUserId: followerId,
     fromUserName: followerName,
     read: false,
     createdAt: serverTimestamp(),
-    relatedId: followRef.id,
-    message: `${followerName} wants to follow you.`
+    relatedId: followRef.id
   });
 };
 
@@ -249,19 +243,12 @@ export const handleFollowRequestAction = async (notificationId: string, followId
 
   if (action === 'accept') {
     batch.update(followRef, { status: 'accepted' });
-    batch.update(notificationRef, { 
-      read: true, 
-      message: 'You accepted the follow request. You are now connected.',
-      type: 'success'
-    });
   } else {
     batch.delete(followRef);
-    batch.update(notificationRef, {
-      read: true,
-      message: 'Follow request declined.',
-      type: 'info'
-    });
   }
+  
+  // Mark notification as read and handled
+  batch.update(notificationRef, { read: true }); 
   
   await batch.commit();
 };
