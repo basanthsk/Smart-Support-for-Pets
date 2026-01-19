@@ -7,7 +7,7 @@ import { syncPetToDb, getPetById, deletePet } from '../services/firebase';
 import jsQR from 'jsqr';
 import { 
   Dog, Plus, PawPrint, Camera, CheckCircle2, Bird, Fish, Thermometer,  
-  Trash2, Stethoscope, Brain, Wand2, Scan, X, Syringe, TrendingUp, Loader2, QrCode, ArrowRight, Palette, Sparkles, Download, AlertTriangle, Bot, Heart
+  Trash2, Stethoscope, Brain, Wand2, Scan, X, Syringe, TrendingUp, Loader2, QrCode, ArrowRight, Palette, Sparkles, AlertTriangle, Bot, Heart
 } from 'lucide-react';
 import { PetProfile, WeightRecord, VaccinationRecord, AppRoutes } from '../types';
 
@@ -124,16 +124,28 @@ const PetProfilePage: React.FC = () => {
 
   const handleDeletePet = async () => {
     if (!selectedPet || !user) return;
-    if (deleteConfirmation !== selectedPet.name) {
+    
+    const inputMatch = deleteConfirmation.trim().toLowerCase();
+    const targetMatch = selectedPet.name.trim().toLowerCase();
+    
+    if (inputMatch !== targetMatch) {
       addNotification('Validation Error', 'The typed name does not match the pet profile name.', 'warning');
       return;
     }
 
     setIsDeleting(true);
     try {
-      await deletePet(selectedPet.id);
-      const updatedPets = pets.filter(p => p.id !== selectedPet.id);
+      const petIdToRemove = selectedPet.id;
+      const petNameToNotify = selectedPet.name;
+
+      await deletePet(petIdToRemove);
+      
+      const updatedPets = pets.filter(p => p.id !== petIdToRemove);
       localStorage.setItem(`ssp_pets_${user.uid}`, JSON.stringify(updatedPets));
+      
+      // Update state in order
+      setShowDeleteModal(false);
+      setDeleteConfirmation('');
       setPets(updatedPets);
       
       if (updatedPets.length > 0) {
@@ -142,9 +154,7 @@ const PetProfilePage: React.FC = () => {
         setSelectedPet(null);
       }
       
-      addNotification('Deleted', `${selectedPet.name}'s profile has been removed.`, 'info');
-      setShowDeleteModal(false);
-      setDeleteConfirmation('');
+      addNotification('Deleted', `${petNameToNotify}'s profile has been removed.`, 'info');
     } catch (err) {
       console.error("Deletion failed:", err);
       addNotification('Error', 'Failed to delete profile.', 'error');
@@ -606,17 +616,18 @@ const PetProfilePage: React.FC = () => {
               <div className="flex gap-3">
                 <button 
                   onClick={() => { setShowDeleteModal(false); setDeleteConfirmation(''); }}
+                  disabled={isDeleting}
                   className="flex-1 py-4 bg-slate-100 text-slate-500 rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-slate-200 transition-all"
                 >
                   Cancel
                 </button>
                 <button 
                   onClick={handleDeletePet}
-                  disabled={deleteConfirmation !== selectedPet.name || isDeleting}
+                  disabled={deleteConfirmation.trim().toLowerCase() !== selectedPet.name.trim().toLowerCase() || isDeleting}
                   className="flex-1 py-4 bg-rose-500 text-white rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-rose-600 transition-all shadow-lg shadow-rose-500/20 disabled:opacity-50 disabled:shadow-none flex items-center justify-center gap-2"
                 >
                   {isDeleting ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />}
-                  Delete Profile
+                  DELETE PROFILE
                 </button>
               </div>
             </div>
