@@ -1,4 +1,3 @@
-
 import { initializeApp } from "firebase/app";
 import { 
   getAuth, 
@@ -6,6 +5,7 @@ import {
   onAuthStateChanged, 
   GoogleAuthProvider,
   OAuthProvider,
+  GithubAuthProvider,
   signInWithPopup,
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
@@ -170,6 +170,13 @@ export const loginWithApple = async () => {
   return result.user;
 };
 
+export const loginWithGithub = async () => {
+  const provider = new GithubAuthProvider();
+  const result = await signInWithPopup(auth, provider);
+  if (result.user) await syncUserToDb(result.user);
+  return result.user;
+};
+
 export const logout = () => signOut(auth);
 
 export const loginWithIdentifier = async (identifier: string, password: string) => {
@@ -182,7 +189,6 @@ export const loginWithIdentifier = async (identifier: string, password: string) 
   const userCredential = await signInWithEmailAndPassword(auth, email, password);
   const user = userCredential.user;
 
-  // Send verification if not verified, but don't sign out as requested by the redirect logic
   if (!user.emailVerified) {
     try {
       await sendEmailVerification(user);
@@ -249,7 +255,6 @@ export const startChat = async (currentUserId: string, targetUserId: string): Pr
   const q = query(collection(db, "chats"), where("participants", "==", participants), limit(1));
   const querySnapshot = await getDocs(q);
   
-  // FIXED: Correctly access the document ID from the docs array
   if (!querySnapshot.empty) return querySnapshot.docs[0].id;
   
   const newChatRef = await addDoc(collection(db, "chats"), { participants, lastMessage: '', createdAt: serverTimestamp(), lastTimestamp: serverTimestamp() });

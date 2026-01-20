@@ -1,9 +1,9 @@
-
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { Loader2, AlertCircle, Eye, EyeOff, CheckCircle2, Phone as PhoneIcon, ChevronDown, Search, Info } from 'lucide-react';
+import { Loader2, AlertCircle, Eye, EyeOff, CheckCircle2, Phone as PhoneIcon, ChevronDown, Search, Info, Github } from 'lucide-react';
 import { 
   loginWithGoogle, 
   loginWithApple, 
+  loginWithGithub,
   loginWithIdentifier, 
   signUpWithEmail 
 } from '../services/firebase';
@@ -145,7 +145,6 @@ const Login: React.FC = () => {
       } else {
         const fullPhone = `${formData.phoneCode} ${formData.phoneNumber.trim()}`;
         await signUpWithEmail(formData.identifier, formData.password, formData.fullName, formData.username, fullPhone);
-        // Redirect to dashboard immediately after Initialize Account
         navigate('/', { replace: true });
       }
     } catch (err: any) {
@@ -168,6 +167,15 @@ const Login: React.FC = () => {
     setIsLoading(true);
     try {
       await loginWithApple();
+      navigate('/', { replace: true });
+    } catch (err) { setError(formatFirebaseError(err)); }
+    finally { setIsLoading(false); }
+  };
+
+  const handleGithubLogin = async () => {
+    setIsLoading(true);
+    try {
+      await loginWithGithub();
       navigate('/', { replace: true });
     } catch (err) { setError(formatFirebaseError(err)); }
     finally { setIsLoading(false); }
@@ -205,10 +213,17 @@ const Login: React.FC = () => {
             <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" className="w-5 h-5" alt="Google" />
             Sign in with Google
           </button>
-          <button onClick={handleAppleLogin} className="flex items-center justify-center gap-3 bg-slate-900 py-3.5 rounded-2xl font-black text-[10px] uppercase tracking-widest text-white hover:bg-black transition-all shadow-xl">
-             <svg className="w-5 h-5" viewBox="0 0 384 512" fill="currentColor"><path d="M318.7 268.7c-.2-36.7 16.4-64.4 50-84.8-18.8-26.9-47.2-41.7-84.7-44.6-35.5-2.8-74.3 21.8-88.5 21.8-11.4 0-51.1-22.1-82.6-22.1-41.9 0-80.6 24.1-102.2 61.9-43.2 75.3-11.1 185.9 31.5 247.4 20.8 29.9 45.3 63.6 77.3 62.6 31.1-1 42.8-20.1 80.5-20.1 37.7 0 48.6 20.1 80.5 19.3 32.7-.8 53.7-30.5 73.8-60 23.2-33.9 32.7-66.8 33-68.5-.8-.4-64.1-24.6-64.4-97.5zm-58.5-157.4c16-19.7 26.8-47 23.8-74.3-23.3 1-51.3 15.6-68 35.3-14.9 17.5-28 45.3-24.5 71.5 26.1 2 52.7-12.8 68.7-32.5z"/></svg>
-             Sign in with Apple
-          </button>
+          
+          <div className="grid grid-cols-2 gap-3">
+            <button onClick={handleAppleLogin} className="flex items-center justify-center gap-3 bg-slate-900 py-3.5 rounded-2xl font-black text-[10px] uppercase tracking-widest text-white hover:bg-black transition-all shadow-xl">
+               <svg className="w-4 h-4" viewBox="0 0 384 512" fill="currentColor"><path d="M318.7 268.7c-.2-36.7 16.4-64.4 50-84.8-18.8-26.9-47.2-41.7-84.7-44.6-35.5-2.8-74.3 21.8-88.5 21.8-11.4 0-51.1-22.1-82.6-22.1-41.9 0-80.6 24.1-102.2 61.9-43.2 75.3-11.1 185.9 31.5 247.4 20.8 29.9 45.3 63.6 77.3 62.6 31.1-1 42.8-20.1 80.5-20.1 37.7 0 48.6 20.1 80.5 19.3 32.7-.8 53.7-30.5 73.8-60 23.2-33.9 32.7-66.8 33-68.5-.8-.4-64.1-24.6-64.4-97.5zm-58.5-157.4c16-19.7 26.8-47 23.8-74.3-23.3 1-51.3 15.6-68 35.3-14.9 17.5-28 45.3-24.5 71.5 26.1 2 52.7-12.8 68.7-32.5z"/></svg>
+               Apple
+            </button>
+            <button onClick={handleGithubLogin} className="flex items-center justify-center gap-3 bg-white border border-slate-200 py-3.5 rounded-2xl font-black text-[10px] uppercase tracking-widest text-slate-800 hover:bg-slate-50 transition-all shadow-sm">
+               <Github size={16} />
+               GitHub
+            </button>
+          </div>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
