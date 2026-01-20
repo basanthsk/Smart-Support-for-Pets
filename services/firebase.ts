@@ -45,7 +45,7 @@ const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const db = getFirestore(app);
 
-// ... (user management functions like isUsernameTaken, syncUserToDb, etc. remain the same)
+// ... (user management functions)
 export const isUsernameTaken = async (username: string, excludeUid: string) => {
   if (!username) return false;
   try {
@@ -62,6 +62,7 @@ export const isUsernameTaken = async (username: string, excludeUid: string) => {
     return false; 
   }
 };
+
 export const syncUserToDb = async (user: FirebaseUser, extraData: any = {}) => {
   const userRef = doc(db, "users", user.uid);
   const displayName = extraData.displayName || user.displayName || 'Pet Parent';
@@ -84,6 +85,7 @@ export const syncUserToDb = async (user: FirebaseUser, extraData: any = {}) => {
     return data;
   }
 };
+
 export const syncPetToDb = async (pet: any) => {
   const petRef = doc(db, "pets", pet.id);
   await setDoc(petRef, {
@@ -92,23 +94,27 @@ export const syncPetToDb = async (pet: any) => {
     updatedAt: serverTimestamp()
   }, { merge: true });
 };
+
 export const getPetById = async (id: string) => {
   if (!id) return null;
   const petRef = doc(db, "pets", id);
   const snap = await getDoc(petRef);
   return snap.exists() ? { id: snap.id, ...snap.data() } as PetProfile : null;
 };
+
 export const deletePet = async (petId: string) => {
   if (!petId) return;
   const petRef = doc(db, "pets", petId);
   await deleteDoc(petRef);
 };
+
 export const getUserById = async (id: string) => {
   if (!id) return null;
   const userRef = doc(db, "users", id);
   const snap = await getDoc(userRef);
   return snap.exists() ? { uid: snap.id, ...snap.data() } as User : null;
 };
+
 export const getUserByUsername = async (username: string): Promise<User | null> => {
   if (!username) return null;
   const lowerCaseUsername = username.toLowerCase().trim();
@@ -118,24 +124,27 @@ export const getUserByUsername = async (username: string): Promise<User | null> 
   const userDoc = querySnapshot.docs[0];
   return { uid: userDoc.id, ...userDoc.data() } as User;
 };
+
 export const getPetsByOwnerId = async (ownerId: string): Promise<PetProfile[]> => {
   if (!ownerId) return [];
   const q = query(collection(db, "pets"), where("ownerId", "==", ownerId), limit(10));
   const querySnapshot = await getDocs(q);
   return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }) as PetProfile);
 };
+
 export const getAllUsers = async (): Promise<User[]> => {
   const usersCollection = collection(db, "users");
   const usersSnapshot = await getDocs(usersCollection);
   return usersSnapshot.docs.map(doc => ({ uid: doc.id, ...doc.data() }) as User);
 };
+
 export const searchPetsAndOwners = async (searchText: string): Promise<{ pet: PetProfile, owner: User | null }[]> => {
   if (!searchText.trim()) return [];
   const lowerCaseSearch = searchText.toLowerCase();
   const petsQuery = query(collection(db, "pets"), where("lowercaseName", ">=", lowerCaseSearch), where("lowercaseName", "<=", lowerCaseSearch + '\uf8ff'), limit(10));
   const ownersQuery = query(collection(db, "users"), where("lowercaseDisplayName", ">=", lowerCaseSearch), where("lowercaseDisplayName", "<=", lowerCaseSearch + '\uf8ff'), limit(10));
   
-  // FIX: Passing ownersQuery instead of the uninitialized ownersSnapshot variable to the second getDocs call
+  // FIXED: Passed ownersQuery instead of ownersSnapshot (which is not yet defined)
   const [petsSnapshot, ownersSnapshot] = await Promise.all([getDocs(petsQuery), getDocs(ownersQuery)]);
   
   const resultsMap = new Map<string, { pet: PetProfile, owner: User | null }>();
@@ -145,6 +154,7 @@ export const searchPetsAndOwners = async (searchText: string): Promise<{ pet: Pe
   for (const owner of ownerResults) { const petsOfOwner = await getPetsByOwnerId(owner.uid); for (const pet of petsOfOwner) { if (!resultsMap.has(pet.id)) { resultsMap.set(pet.id, { pet, owner }); } } }
   return Array.from(resultsMap.values());
 };
+
 export const loginWithGoogle = async () => {
   const provider = new GoogleAuthProvider();
   provider.setCustomParameters({ prompt: 'select_account consent' });
@@ -152,6 +162,7 @@ export const loginWithGoogle = async () => {
   if (result.user) await syncUserToDb(result.user);
   return result.user;
 };
+
 export const loginWithApple = async () => {
   const provider = new OAuthProvider('apple.com');
   provider.addScope('email'); provider.addScope('name');
@@ -159,7 +170,9 @@ export const loginWithApple = async () => {
   if (result.user) await syncUserToDb(result.user);
   return result.user;
 };
+
 export const logout = () => signOut(auth);
+
 export const loginWithIdentifier = async (identifier: string, password: string) => {
   let email = identifier.trim();
   if (!identifier.includes('@')) {
@@ -170,14 +183,12 @@ export const loginWithIdentifier = async (identifier: string, password: string) 
   const userCredential = await signInWithEmailAndPassword(auth, email, password);
   const user = userCredential.user;
 
-  // Security Policy: Ensure email verification for traditional email/password login
   if (!user.emailVerified) {
     try {
       await sendEmailVerification(user);
     } catch (err) {
       console.warn("Verification auto-dispatch failed:", err);
     }
-    // Sign out immediately if not verified to block session establishment
     await signOut(auth);
     throw { code: 'auth/email-not-verified' };
   }
@@ -185,6 +196,7 @@ export const loginWithIdentifier = async (identifier: string, password: string) 
   await syncUserToDb(user);
   return user;
 };
+
 export const signUpWithEmail = async (email: string, password: string, fullName: string, username: string, phoneNumber: string = '') => {
   if (await isUsernameTaken(username, '')) throw { code: 'auth/username-already-in-use' };
   const userCredential = await createUserWithEmailAndPassword(auth, email.trim(), password);
@@ -194,10 +206,12 @@ export const signUpWithEmail = async (email: string, password: string, fullName:
   await syncUserToDb(user, { displayName: fullName, username: username.toLowerCase().trim(), phoneNumber });
   return user;
 };
+
 export const resendVerificationEmail = async () => {
   const user = auth.currentUser;
   if (user && !user.emailVerified) await sendEmailVerification(user);
 };
+
 export const updateUserProfile = async (uid: string, data: { displayName?: string, username?: string, phoneNumber?: string }) => {
   const { displayName, username, phoneNumber } = data;
   
@@ -231,14 +245,19 @@ export const updateUserProfile = async (uid: string, data: { displayName?: strin
     await updateDoc(userRef, updateData);
   }
 };
+
 export const startChat = async (currentUserId: string, targetUserId: string): Promise<string> => {
   const participants = [currentUserId, targetUserId].sort();
   const q = query(collection(db, "chats"), where("participants", "==", participants), limit(1));
   const querySnapshot = await getDocs(q);
+  
+  // FIXED: Access the first document's ID from the docs array instead of the snapshot directly
   if (!querySnapshot.empty) return querySnapshot.docs[0].id;
+  
   const newChatRef = await addDoc(collection(db, "chats"), { participants, lastMessage: '', createdAt: serverTimestamp(), lastTimestamp: serverTimestamp() });
   return newChatRef.id;
 };
+
 export const sendChatMessage = async (chatId: string, senderId: string, text: string) => {
   const chatRef = doc(db, "chats", chatId);
   const messagesRef = collection(chatRef, "messages");
@@ -246,7 +265,7 @@ export const sendChatMessage = async (chatId: string, senderId: string, text: st
   await updateDoc(chatRef, { lastMessage: text, lastTimestamp: serverTimestamp() });
 };
 
-// --- NEW FOLLOW SYSTEM ---
+// --- FOLLOW SYSTEM ---
 export const getFollowStatus = async (followerId: string, followingId: string): Promise<FollowStatus> => {
   if (followerId === followingId) return 'is_self';
   const q = query(collection(db, "follows"), where("followerId", "==", followerId), where("followingId", "==", followingId), limit(1));
@@ -267,7 +286,6 @@ export const requestFollow = async (followerId: string, followerName: string, fo
     createdAt: serverTimestamp()
   });
 
-  // Create notification for the user being followed
   await addDoc(collection(db, "notifications"), {
     userId: followingId,
     type: 'follow_request',
@@ -290,7 +308,6 @@ export const handleFollowRequestAction = async (notificationId: string, followId
     batch.delete(followRef);
   }
   
-  // Mark notification as read and handled
   batch.update(notificationRef, { read: true }); 
   
   await batch.commit();
