@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useNavigate } from "react-router-dom";
 import { useAuth } from '../context/AuthContext';
@@ -174,7 +173,6 @@ const PetProfilePage: React.FC = () => {
     
     const loadPetsData = async () => {
       setIsSyncing(true);
-      // 1. Load from local cache for speed
       const saved = localStorage.getItem(`ssp_pets_${user.uid}`);
       if (saved) {
         try {
@@ -184,14 +182,16 @@ const PetProfilePage: React.FC = () => {
         } catch (e) { }
       }
 
-      // 2. Sync with cloud to ensure multi-device availability
       try {
         const remotePets = await getPetsByOwnerId(user.uid);
         if (remotePets.length > 0) {
           setPets(remotePets);
           localStorage.setItem(`ssp_pets_${user.uid}`, JSON.stringify(remotePets));
-          // Update selected pet if nothing is selected yet
-          setSelectedPet(prev => prev ? (remotePets.find(p => p.id === prev.id) || remotePets[0]) : remotePets[0]);
+          setSelectedPet(prev => {
+            if (!prev) return remotePets[0];
+            const found = remotePets.find(p => p.id === prev.id);
+            return found || remotePets[0];
+          });
         }
       } catch (err) {
         console.warn("Cloud sync failed, using local registry:", err);
@@ -214,7 +214,6 @@ const PetProfilePage: React.FC = () => {
     e.preventDefault();
     if (!user) return;
     
-    // Inline Validation
     if (!newPet.name?.trim()) {
        addNotification('Validation Error', 'Companion name is required.', 'warning');
        return;
@@ -266,14 +265,22 @@ const PetProfilePage: React.FC = () => {
     try {
       await deletePet(selectedPet.id);
       const updatedPets = pets.filter(p => p.id !== selectedPet.id);
+      
+      // Update internal state and cache
       setPets(updatedPets);
       localStorage.setItem(`ssp_pets_${user.uid}`, JSON.stringify(updatedPets));
+      
+      // Select the remaining pet if available
+      if (updatedPets.length > 0) {
+        setSelectedPet(updatedPets[0]);
+      } else {
+        setSelectedPet(null);
+      }
+
       addNotification('Profile Removed', `${selectedPet.name}'s registry has been purged.`, 'info');
       setShowDeleteModal(false);
       setDeleteConfirmation('');
-      if (updatedPets.length > 0) setSelectedPet(updatedPets[0]);
-      else setSelectedPet(null);
-      navigate(AppRoutes.PET_PROFILE);
+      setIsAdding(false);
     } catch (err) {
       addNotification('System Error', 'Failed to remove pet.', 'error');
     } finally {
@@ -336,7 +343,6 @@ const PetProfilePage: React.FC = () => {
     e.preventDefault();
     if (!selectedPet) return;
 
-    // Inline Validation
     if (isAddingRecord === 'weight' && (!newRecord.weight || isNaN(parseFloat(newRecord.weight)))) {
       addNotification('Validation Error', 'Please enter a valid weight.', 'warning');
       return;
@@ -602,12 +608,12 @@ const PetProfilePage: React.FC = () => {
                     </button>
                   </div>
 
-                  <div className="space-y-1 pb-4">
+                  <div className="space-y-1 pb-4 relative z-20">
                     <h3 className="text-4xl font-black text-slate-900 tracking-tighter">{selectedPet.name}</h3>
                     <p className="text-[10px] font-black text-theme uppercase tracking-[0.2em]">{selectedPet.breed} · {selectedPet.species}</p>
                     <button 
                       onClick={() => { setShowDeleteModal(true); setDeleteConfirmation(''); }}
-                      className="mt-6 flex items-center gap-2 mx-auto text-rose-400 hover:text-rose-600 font-bold text-[10px] uppercase tracking-widest transition-colors"
+                      className="mt-6 flex items-center gap-2 mx-auto text-rose-400 hover:text-rose-600 font-bold text-[10px] uppercase tracking-widest transition-colors cursor-pointer"
                     >
                       <Trash2 size={14} /> Purge Profile
                     </button>
