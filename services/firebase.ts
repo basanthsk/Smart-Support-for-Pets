@@ -1,8 +1,8 @@
 import { initializeApp } from "firebase/app";
-import { 
-  getAuth, 
-  signOut, 
-  onAuthStateChanged, 
+import {
+  getAuth,
+  signOut,
+  onAuthStateChanged,
   GoogleAuthProvider,
   OAuthProvider,
   GithubAuthProvider,
@@ -11,25 +11,26 @@ import {
   createUserWithEmailAndPassword,
   updateProfile,
   sendEmailVerification,
-  User as FirebaseUser 
+  User as FirebaseUser
 } from "firebase/auth";
-import { 
-  getFirestore, 
-  doc, 
-  setDoc, 
-  getDocs, 
+import {
+  getFirestore,
+  doc,
+  setDoc,
+  getDocs,
   getDoc,
-  collection, 
-  query, 
-  where, 
-  limit, 
-  updateDoc, 
-  addDoc, 
-  serverTimestamp, 
+  collection,
+  query,
+  where,
+  limit,
+  updateDoc,
+  addDoc,
+  serverTimestamp,
   onSnapshot,
   deleteDoc,
   writeBatch
 } from "firebase/firestore";
+import { getDatabase, ref, get, child } from "firebase/database";
 import { User, PetProfile, FollowStatus } from '../types';
 
 const firebaseConfig = {
@@ -45,6 +46,7 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const db = getFirestore(app);
+export const realtimeDb = getDatabase(app);
 
 export const isUsernameTaken = async (username: string, excludeUid: string) => {
   if (!username) return false;
@@ -134,28 +136,31 @@ export const getPetsByOwnerId = async (ownerId: string): Promise<PetProfile[]> =
 
 export const getAllUsers = async (): Promise<User[]> => {
   try {
-    const usersCollection = collection(db, "users");
-    const usersSnapshot = await getDocs(usersCollection);
-    return usersSnapshot.docs
-      .map(doc => {
-        const data = doc.data();
-        // Ensure required fields exist
-        return {
-          uid: doc.id,
-          email: data.email || null,
-          displayName: data.displayName || 'Pet Parent',
-          photoURL: data.photoURL || null,
-          username: data.username || '',
-          phoneNumber: data.phoneNumber,
-          lowercaseDisplayName: data.lowercaseDisplayName,
-          ...data
-        } as User;
-      })
-      .filter(u => u.displayName && u.username); // Filter out users with incomplete data
-  } catch (error) {
-    console.error("Failed to fetch users from database:", error);
-    throw error;
+    // Try to fetch from Realtime Database first
+    const usersRef = ref(realtimeDb, 'users');
+    const snapshot = await get(usersRef);
+
+    if (snapshot.exists()) {
+      const usersData = snapshot.val();
+      const users: User[] = Object.entries(usersData).map(([uid, userData]: [string, any]) => ({
+        uid,
+        email: userData.email || null,
+        displayName: userData.displayName || userData.name || 'Pet Parent',
+        photoURL: userData.photoURL || null,
+        phoneNumber: userData.phoneNumber || null,
+        username: userData.username || userData.displayName?.toLowerCase().replace(/\s/g, '') || uid.slice(0, 8),
+        lowercaseDisplayName: (userData.displayName || userData.name || '').toLowerCase()
+      }));
+      return users;
+    }
+  } catch (realtimeError) {
+    console.warn("Failed to fetch from Realtime DB, trying Firestore:", realtimeError);
   }
+
+  // Fallback to Firestore
+  const usersCollection = collection(db, "users");
+  const usersSnapshot = await getDocs(usersCollection);
+  return usersSnapshot.docs.map(doc => ({ uid: doc.id, ...doc.data() }) as User);
 };
 
 export const searchPetsAndOwners = async (searchText: string): Promise<{ pet: PetProfile, owner: User | null }[]> => {
