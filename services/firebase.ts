@@ -1,3 +1,4 @@
+
 import { initializeApp } from "firebase/app";
 import { 
   getAuth, 
@@ -45,7 +46,6 @@ const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const db = getFirestore(app);
 
-// ... (user management functions)
 export const isUsernameTaken = async (username: string, excludeUid: string) => {
   if (!username) return false;
   try {
@@ -144,7 +144,6 @@ export const searchPetsAndOwners = async (searchText: string): Promise<{ pet: Pe
   const petsQuery = query(collection(db, "pets"), where("lowercaseName", ">=", lowerCaseSearch), where("lowercaseName", "<=", lowerCaseSearch + '\uf8ff'), limit(10));
   const ownersQuery = query(collection(db, "users"), where("lowercaseDisplayName", ">=", lowerCaseSearch), where("lowercaseDisplayName", "<=", lowerCaseSearch + '\uf8ff'), limit(10));
   
-  // FIXED: Passed ownersQuery instead of ownersSnapshot (which is not yet defined)
   const [petsSnapshot, ownersSnapshot] = await Promise.all([getDocs(petsQuery), getDocs(ownersQuery)]);
   
   const resultsMap = new Map<string, { pet: PetProfile, owner: User | null }>();
@@ -183,14 +182,13 @@ export const loginWithIdentifier = async (identifier: string, password: string) 
   const userCredential = await signInWithEmailAndPassword(auth, email, password);
   const user = userCredential.user;
 
+  // Send verification if not verified, but don't sign out as requested by the redirect logic
   if (!user.emailVerified) {
     try {
       await sendEmailVerification(user);
     } catch (err) {
       console.warn("Verification auto-dispatch failed:", err);
     }
-    await signOut(auth);
-    throw { code: 'auth/email-not-verified' };
   }
 
   await syncUserToDb(user);
@@ -251,7 +249,7 @@ export const startChat = async (currentUserId: string, targetUserId: string): Pr
   const q = query(collection(db, "chats"), where("participants", "==", participants), limit(1));
   const querySnapshot = await getDocs(q);
   
-  // FIXED: Access the first document's ID from the docs array instead of the snapshot directly
+  // FIXED: Correctly access the document ID from the docs array
   if (!querySnapshot.empty) return querySnapshot.docs[0].id;
   
   const newChatRef = await addDoc(collection(db, "chats"), { participants, lastMessage: '', createdAt: serverTimestamp(), lastTimestamp: serverTimestamp() });
@@ -265,7 +263,6 @@ export const sendChatMessage = async (chatId: string, senderId: string, text: st
   await updateDoc(chatRef, { lastMessage: text, lastTimestamp: serverTimestamp() });
 };
 
-// --- FOLLOW SYSTEM ---
 export const getFollowStatus = async (followerId: string, followingId: string): Promise<FollowStatus> => {
   if (followerId === followingId) return 'is_self';
   const q = query(collection(db, "follows"), where("followerId", "==", followerId), where("followingId", "==", followingId), limit(1));
@@ -312,7 +309,6 @@ export const handleFollowRequestAction = async (notificationId: string, followId
   
   await batch.commit();
 };
-
 
 export { onAuthStateChanged };
 export type { FirebaseUser };

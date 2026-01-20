@@ -30,7 +30,6 @@ const Login: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [infoMessage, setInfoMessage] = useState('');
-  const [successMessage, setSuccessMessage] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [agreedToTerms, setAgreedToTerms] = useState(false);
@@ -94,7 +93,6 @@ const Login: React.FC = () => {
       case 'auth/email-already-in-use': return "This email is already registered.";
       case 'auth/weak-password': return "Password is not secure enough.";
       case 'auth/username-already-in-use': return "This handle is already taken.";
-      case 'auth/email-not-verified': return "email-not-verified"; // Special handling
       default: return err.message || "An unexpected error occurred.";
     }
   };
@@ -147,15 +145,11 @@ const Login: React.FC = () => {
       } else {
         const fullPhone = `${formData.phoneCode} ${formData.phoneNumber.trim()}`;
         await signUpWithEmail(formData.identifier, formData.password, formData.fullName, formData.username, fullPhone);
-        setSuccessMessage("Identity registered. A verification link has been sent to your email.");
+        // Redirect to dashboard immediately after Initialize Account
+        navigate('/', { replace: true });
       }
     } catch (err: any) {
-      const formatted = formatFirebaseError(err);
-      if (formatted === 'email-not-verified') {
-        setInfoMessage("Identity detected, but verification is pending. A new link has been dispatched to your inbox.");
-      } else {
-        setError(formatted);
-      }
+      setError(formatFirebaseError(err));
     } finally {
       setIsLoading(false);
     }
@@ -178,19 +172,6 @@ const Login: React.FC = () => {
     } catch (err) { setError(formatFirebaseError(err)); }
     finally { setIsLoading(false); }
   };
-
-  if (successMessage) {
-    return (
-      <div className="min-h-screen bg-[#f8fafc] flex items-center justify-center p-6">
-        <div className="max-w-md w-full bg-white rounded-[3rem] shadow-2xl p-12 text-center animate-in zoom-in-95">
-          <CheckCircle2 size={64} className="mx-auto text-emerald-500 mb-6" />
-          <h2 className="text-3xl font-black text-slate-900 tracking-tight">Access Logged</h2>
-          <p className="text-slate-500 mt-4 font-medium leading-relaxed">{successMessage}</p>
-          <button onClick={() => { setSuccessMessage(''); setIsLogin(true); }} className="mt-8 px-8 py-3 bg-slate-900 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-black transition-all">Proceed to Sign In</button>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-[#f8fafc] flex items-center justify-center p-6 font-inter">
