@@ -13,6 +13,7 @@ const Home = lazy(() => import('./pages/Home'));
 const AIAssistant = lazy(() => import('./pages/AIAssistant'));
 const PetCare = lazy(() => import('./pages/PetCare'));
 const Login = lazy(() => import('./pages/Login'));
+const Landing = lazy(() => import('./pages/Landing'));
 const Settings = lazy(() => import('./pages/Settings'));
 const Community = lazy(() => import('./pages/Community'));
 const Terms = lazy(() => import('./pages/Terms'));
@@ -57,6 +58,8 @@ declare global {
 }
 
 const AppContent: React.FC = () => {
+  const { user, loading } = useAuth();
+
   useEffect(() => {
     const preloader = document.getElementById('preloader');
     if (preloader) {
@@ -65,10 +68,13 @@ const AppContent: React.FC = () => {
     }
   }, []);
 
+  if (loading) return <PageLoader />;
+
   return (
     <Suspense fallback={<PageLoader />}>
       <Routes>
         <Route path="/login" element={<Login />} />
+        <Route path="/" element={user ? <Navigate to={AppRoutes.HOME} replace /> : <Landing />} />
         <Route path={AppRoutes.HOME} element={<ProtectedRoute><Home /></ProtectedRoute>} />
         <Route path={AppRoutes.AI_ASSISTANT} element={<ProtectedRoute><AIAssistant /></ProtectedRoute>} />
         <Route path={AppRoutes.PET_CARE} element={<ProtectedRoute><PetCare /></ProtectedRoute>} />
