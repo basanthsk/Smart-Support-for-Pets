@@ -133,9 +133,29 @@ export const getPetsByOwnerId = async (ownerId: string): Promise<PetProfile[]> =
 };
 
 export const getAllUsers = async (): Promise<User[]> => {
-  const usersCollection = collection(db, "users");
-  const usersSnapshot = await getDocs(usersCollection);
-  return usersSnapshot.docs.map(doc => ({ uid: doc.id, ...doc.data() }) as User);
+  try {
+    const usersCollection = collection(db, "users");
+    const usersSnapshot = await getDocs(usersCollection);
+    return usersSnapshot.docs
+      .map(doc => {
+        const data = doc.data();
+        // Ensure required fields exist
+        return {
+          uid: doc.id,
+          email: data.email || null,
+          displayName: data.displayName || 'Pet Parent',
+          photoURL: data.photoURL || null,
+          username: data.username || '',
+          phoneNumber: data.phoneNumber,
+          lowercaseDisplayName: data.lowercaseDisplayName,
+          ...data
+        } as User;
+      })
+      .filter(u => u.displayName && u.username); // Filter out users with incomplete data
+  } catch (error) {
+    console.error("Failed to fetch users from database:", error);
+    throw error;
+  }
 };
 
 export const searchPetsAndOwners = async (searchText: string): Promise<{ pet: PetProfile, owner: User | null }[]> => {
