@@ -51,6 +51,34 @@ export const BREED_DATA: Record<string, string[]> = {
   Other: ['Exotic Pet', 'Wild Animal', 'Invertebrate']
 };
 
+const MAX_AGE_BY_SPECIES: Record<string, number> = {
+  Dog: 20,
+  Cat: 25,
+  Rabbit: 12,
+  Hamster: 4,
+  'Guinea pig': 8,
+  'Budgie (Parakeet)': 10,
+  Cockatiel: 25,
+  'Parrot (African Grey)': 60,
+  Canary: 10,
+  Goldfish: 20,
+  'Betta fish': 5,
+  Guppy: 3,
+  Koi: 50,
+  Turtle: 80,
+  Tortoise: 150,
+  Gecko: 20,
+  Snake: 30,
+  Frog: 15,
+  Salamander: 15,
+  Newt: 10,
+  'Hermit crab': 30,
+  Tarantula: 25,
+  Snail: 5,
+  'Ant farm': 20,
+  Other: 150
+};
+
 export const PET_CATEGORIES = [
   { id: 'mammal', name: 'Mammals', icon: Dog, species: ['Dog', 'Cat', 'Rabbit', 'Hamster', 'Guinea pig'] },
   { id: 'bird', name: 'Birds', icon: Bird, species: ['Budgie (Parakeet)', 'Cockatiel', 'Parrot (African Grey)', 'Canary'] },
@@ -77,15 +105,16 @@ const AVATAR_STYLES = [
   { id: 'synth-future', name: 'Cyber Wave', description: 'Neon lights & futuristic tech', prompt: 'A futuristic cyberpunk themed portrait. Neon lights, synthwave aesthetic, dark city background, high-tech glow.' },
 ];
 
-const calculateAge = (birthday: string) => {
+const calculateAge = (birthday: string, species: string = 'Other') => {
   if (!birthday) return { years: 0, months: 0 };
   const birthDate = new Date(birthday);
   const today = new Date();
   
-  // Biological limit check (e.g., 50 years)
-  const maxAgeLimit = 50;
-  if (birthDate > today || today.getFullYear() - birthDate.getFullYear() > maxAgeLimit) {
-    return { years: 0, months: 0, invalid: true };
+  const speciesLimit = MAX_AGE_BY_SPECIES[species] || 150;
+  const currentAgeInYears = today.getFullYear() - birthDate.getFullYear();
+
+  if (birthDate > today || currentAgeInYears > speciesLimit) {
+    return { years: 0, months: 0, invalid: true, limit: speciesLimit };
   }
 
   let years = today.getFullYear() - birthDate.getFullYear();
@@ -172,11 +201,16 @@ const PetProfilePage: React.FC = () => {
   const qrFileInputRef = useRef<HTMLInputElement>(null);
 
   const todayStr = new Date().toISOString().split('T')[0];
+  
   const minDate = useMemo(() => {
     const d = new Date();
-    d.setFullYear(d.getFullYear() - 50); // Set absolute minimum to 50 years ago
+    d.setFullYear(d.getFullYear() - 150); // Set absolute registry floor to 150 years ago
     return d.toISOString().split('T')[0];
   }, []);
+
+  const speciesAgeLimit = useMemo(() => {
+    return MAX_AGE_BY_SPECIES[newPet.species || 'Dog'] || 20;
+  }, [newPet.species]);
 
   useEffect(() => {
     if (!user?.uid) return;
@@ -233,9 +267,9 @@ const PetProfilePage: React.FC = () => {
        return;
     }
 
-    const { years, months, invalid } = calculateAge(newPet.birthday);
+    const { years, months, invalid, limit } = calculateAge(newPet.birthday, newPet.species);
     if (invalid) {
-       addNotification('Biological Limit', 'Age exceeds biological limits (max 50 years).', 'error');
+       addNotification('Biological Limit', `Age exceeds known limits for a ${newPet.species} (${limit} years).`, 'error');
        return;
     }
 
@@ -564,9 +598,12 @@ const PetProfilePage: React.FC = () => {
                     </select>
                   </div>
                   <div className="space-y-2">
-                    <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">Birthday</label>
+                    <div className="flex justify-between items-center ml-1">
+                      <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Birthday</label>
+                      <span className="text-[9px] font-black uppercase text-theme tracking-widest bg-theme-light px-2 py-0.5 rounded-full">Max: {speciesAgeLimit}y</span>
+                    </div>
                     <input type="date" required min={minDate} max={todayStr} value={newPet.birthday} onChange={e => setNewPet({ ...newPet, birthday: e.target.value })} className="w-full p-4 bg-slate-50 rounded-xl outline-none focus:ring-2 focus:ring-theme/5 font-bold" />
-                    <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1">Maximum age limit: 50 years</p>
+                    <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1">Safeguard registry floor set to 150 years.</p>
                   </div>
                   <button type="submit" className="w-full bg-slate-900 text-white py-5 rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-black transition-all">Initialize Profile</button>
                 </form>
