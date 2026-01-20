@@ -10,7 +10,8 @@ import {
   Dog, Plus, PawPrint, Camera, CheckCircle2, Bird, Fish, Thermometer,  
   Trash2, Stethoscope, Brain, Wand2, Scan, X, Syringe, TrendingUp, Loader2, QrCode, ArrowRight, Palette, Sparkles, AlertTriangle, Bot, Heart, Bug, Waves,
   Star, 
-  Layers
+  Layers,
+  Sparkle
 } from 'lucide-react';
 import { PetProfile, WeightRecord, VaccinationRecord, AppRoutes } from '../types';
 
@@ -59,17 +60,19 @@ export const PET_CATEGORIES = [
 
 const AVATAR_STYLES = [
   { 
-    id: 'studio-modern', 
-    name: 'Modern Studio', 
-    description: 'High-quality digital kawaii aesthetic', 
+    id: 'elite-studio', 
+    name: 'Elite Digital Studio', 
+    description: 'Modern, premium polished aesthetic', 
     isPremium: true,
-    prompt: 'A high-quality digital pet avatar suitable for a mobile app profile picture. Style: Cute, friendly, and modern cartoon aesthetic, soft pastel colors with smooth gradient lighting, big expressive eyes and a rounded face, clean smooth vector-style lines, soft shadows for depth. Composition: Front-facing, centered, and clearly visible, framed inside a clean circular border, simple light or pastel gradient background, minimal details, professional and app-friendly. Mood: Warm, welcoming, and playful but polished.'
+    prompt: `A high-quality digital pet avatar optimized for a mobile app profile picture. 
+    Art Direction: Cute, friendly, and modern cartoon aesthetic; soft pastel color palette with smooth gradient lighting and subtle glow highlights; big expressive eyes and a rounded face; clean, smooth vector-style lines; soft shadows for depth; subtle rim lighting. 
+    Composition: Front-facing, centered, and clearly visible; framed inside a clean circular border; simple light or pastel gradient background; minimal details so it looks professional and app-friendly. 
+    Mood: Warm, welcoming, and playful but polished; clean startup-style digital polish.`
   },
-  { id: 'realistic', name: 'Realistic', description: 'Studio lighting & 4K textures', prompt: 'A cinematic, ultra-high-quality professional studio avatar portrait. Detailed fur, vibrant lighting, 4K resolution, macro photography style.' },
-  { id: 'animation', name: 'Animation', description: 'Pixar-inspired 3D character', prompt: 'A cute, 3D animated style character portrait. Pixar/Disney style, expressive eyes, vibrant colors, clean lines, high-end CGI.' },
-  { id: 'watercolor', name: 'Watercolor', description: 'Dreamy & soft brushstrokes', prompt: 'A beautiful, delicate watercolor painting. Soft brushstrokes, artistic splatters, dreamy atmosphere, elegant paper texture background.' },
-  { id: 'oil', name: 'Oil Painting', description: 'Majestic classical portrait', prompt: 'A classic, majestic oil painting portrait. Rich textures, deep colors, masterful lighting, baroque museum style, heavy canvas feel.' },
-  { id: 'cyberpunk', name: 'Cyberpunk', description: 'Neon lights & futuristic tech', prompt: 'A futuristic cyberpunk themed portrait. Neon lights, mechanical enhancements, synthwave aesthetic, dark city background, high-tech glow.' },
+  { id: 'realistic', name: 'Studio Portrait', description: 'Detailed fur & 4K textures', prompt: 'A cinematic, ultra-high-quality professional studio avatar portrait. Detailed fur, vibrant lighting, 4K resolution, macro photography style.' },
+  { id: 'pixar', name: '3D Animation', description: 'Pixar-inspired character', prompt: 'A cute, 3D animated style character portrait. Pixar/Disney style, expressive eyes, vibrant colors, clean lines, high-end CGI.' },
+  { id: 'watercolor', name: 'Artisan Watercolor', description: 'Dreamy & soft brushstrokes', prompt: 'A beautiful, delicate watercolor painting. Soft brushstrokes, artistic splatters, dreamy atmosphere, elegant paper texture background.' },
+  { id: 'cyber', name: 'Neon Future', description: 'Futuristic synthwave vibes', prompt: 'A futuristic cyberpunk themed portrait. Neon lights, synthwave aesthetic, dark city background, high-tech glow.' },
 ];
 
 const calculateAge = (birthday: string) => {
@@ -172,35 +175,27 @@ const PetProfilePage: React.FC = () => {
       const petIdToRemove = selectedPet.id;
       const petNameToNotify = selectedPet.name;
 
-      // Ensure deletion from the cloud database
       await deletePet(petIdToRemove);
       
-      // Update local collection
       const updatedPets = pets.filter(p => p.id !== petIdToRemove);
-      
-      // Persist locally
       localStorage.setItem(`ssp_pets_${user.uid}`, JSON.stringify(updatedPets));
       setPets(updatedPets);
       
-      // Reset interaction state
       setShowDeleteModal(false);
       setDeleteConfirmation('');
       setIsAdding(false); 
       
-      // Redirect behavior: Select first pet or go back to registry home
       if (updatedPets.length > 0) {
         setSelectedPet(updatedPets[0]);
       } else {
         setSelectedPet(null);
       }
       
-      // Explicit navigation to ensure route state is fresh
       navigate(AppRoutes.PET_PROFILE);
-      
-      addNotification('Identity Purged', `${petNameToNotify}'s profile has been removed from the registry.`, 'info');
+      addNotification('Identity Purged', `${petNameToNotify}'s profile has been removed.`, 'info');
     } catch (err) {
-      console.error("Deletion cycle failed:", err);
-      addNotification('System Error', 'Could not complete deletion. Please try again.', 'error');
+      console.error("Deletion failed:", err);
+      addNotification('Error', 'Failed to delete profile.', 'error');
     } finally {
       setIsDeleting(false);
     }
@@ -250,7 +245,7 @@ const PetProfilePage: React.FC = () => {
     try {
       const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
       const stylePrompt = style.prompt;
-      const corePrompt = `${stylePrompt} Subject: a ${selectedPet.breed} ${selectedPet.species} named ${selectedPet.name}. Elegant composition, focus on facial features.`;
+      const corePrompt = `${stylePrompt} Subject: a ${selectedPet.breed} ${selectedPet.species} named ${selectedPet.name}. The character should have a friendly expression with a soft gentle smile. Clean digital polish.`;
       
       const contents: any = { parts: [{ text: corePrompt }] };
       if (base64Source) {
@@ -595,69 +590,71 @@ const PetProfilePage: React.FC = () => {
       {/* AI Avatar Style Modal */}
       {showStyleModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-slate-900/60 backdrop-blur-md animate-in fade-in">
-          <div className="bg-white rounded-[3rem] w-full max-w-4xl overflow-hidden shadow-2xl animate-in zoom-in-95 duration-300 flex flex-col max-h-[90vh]">
-            <div className="p-10 border-b border-slate-50 flex items-center justify-between shrink-0">
-              <div className="flex items-center gap-5">
-                <div className="p-4 bg-theme-light text-theme rounded-[1.5rem] shadow-sm">
-                  <Wand2 size={28} />
+          <div className="bg-white rounded-[3.5rem] w-full max-w-5xl overflow-hidden shadow-2xl animate-in zoom-in-95 duration-300 flex flex-col max-h-[90vh]">
+            <div className="p-12 border-b border-slate-50 flex items-center justify-between shrink-0">
+              <div className="flex items-center gap-6">
+                <div className="p-4 bg-theme-light text-theme rounded-[2rem] shadow-sm">
+                  <Bot size={32} />
                 </div>
                 <div>
                   <h3 className="text-3xl font-black text-slate-900 tracking-tight flex items-center gap-3">
-                    AI Avatar Studio
-                    <span className="text-[10px] font-black uppercase tracking-widest bg-emerald-50 text-emerald-600 px-3 py-1 rounded-full border border-emerald-100">Live</span>
+                    AI Portrait Studio
+                    <span className="text-[10px] font-black uppercase tracking-widest bg-emerald-50 text-emerald-600 px-3 py-1 rounded-full border border-emerald-100">Active</span>
                   </h3>
-                  <p className="text-slate-500 font-medium text-sm">Design a world-class digital identity for {selectedPet?.name}.</p>
+                  <p className="text-slate-500 font-medium text-sm">Create a world-class digital identity for {selectedPet?.name}.</p>
                 </div>
               </div>
               <button onClick={() => setShowStyleModal(false)} className="p-4 text-slate-400 hover:bg-slate-50 rounded-2xl transition-all">
-                <X size={24} />
+                <X size={28} />
               </button>
             </div>
             
-            <div className="p-10 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 overflow-y-auto custom-scrollbar flex-1 bg-slate-50/30">
+            <div className="p-12 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 overflow-y-auto custom-scrollbar flex-1 bg-slate-50/20">
               {AVATAR_STYLES.map(style => (
                 <button 
                   key={style.id}
                   onClick={() => generateAIAvatar(style.id)}
-                  className={`group relative flex flex-col p-8 rounded-[2rem] border transition-all text-left overflow-hidden h-full ${style.isPremium ? 'bg-slate-900 border-slate-800 text-white ring-4 ring-indigo-500/10' : 'bg-white border-slate-100 hover:border-theme hover:shadow-xl'}`}
+                  className={`group relative flex flex-col p-8 rounded-[2.5rem] border transition-all text-left overflow-hidden h-full ${style.isPremium ? 'bg-slate-900 border-slate-800 text-white ring-8 ring-indigo-500/5' : 'bg-white border-slate-100 hover:border-theme hover:shadow-2xl hover:-translate-y-1'}`}
                 >
-                  <div className="flex items-center justify-between mb-4 relative z-10">
-                    <div className={`p-2 rounded-xl ${style.isPremium ? 'bg-indigo-500/20 text-indigo-400' : 'bg-slate-100 text-slate-400 group-hover:bg-theme-light group-hover:text-theme'}`}>
-                      {style.isPremium ? <Star size={16} /> : <Palette size={16} />}
+                  <div className="flex items-center justify-between mb-6 relative z-10">
+                    <div className={`p-3 rounded-2xl ${style.isPremium ? 'bg-indigo-500/20 text-indigo-400' : 'bg-slate-50 text-slate-400 group-hover:bg-theme-light group-hover:text-theme'}`}>
+                      {style.isPremium ? <Sparkles size={20} /> : <Palette size={20} />}
                     </div>
                     {style.isPremium && (
-                      <span className="text-[8px] font-black uppercase tracking-[0.2em] bg-indigo-500 text-white px-2.5 py-1 rounded-full">New Style</span>
+                      <div className="flex items-center gap-2 px-3 py-1 bg-indigo-500/10 rounded-full">
+                         <Star size={12} className="text-indigo-400 fill-indigo-400" />
+                         <span className="text-[8px] font-black uppercase tracking-[0.2em] text-indigo-400">Premium Style</span>
+                      </div>
                     )}
                   </div>
                   
                   <div className="relative z-10">
-                    <h4 className={`font-black text-xl mb-2 transition-colors ${style.isPremium ? 'text-white' : 'text-slate-900 group-hover:text-theme'}`}>
+                    <h4 className={`font-black text-2xl mb-2 transition-colors ${style.isPremium ? 'text-white' : 'text-slate-900 group-hover:text-theme'}`}>
                       {style.name}
                     </h4>
-                    <p className={`text-sm font-medium leading-relaxed mb-4 ${style.isPremium ? 'text-slate-400' : 'text-slate-500'}`}>
+                    <p className={`text-sm font-medium leading-relaxed mb-6 ${style.isPremium ? 'text-slate-400' : 'text-slate-500'}`}>
                       {style.description}
                     </p>
                   </div>
                   
-                  <div className="mt-auto relative z-10 flex items-center gap-2">
-                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all ${style.isPremium ? 'bg-white/10 text-white' : 'bg-slate-100 text-slate-400 group-hover:bg-theme group-hover:text-white'}`}>
-                      <Sparkles size={14} />
+                  <div className="mt-auto relative z-10 flex items-center gap-3">
+                    <div className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2 transition-all ${style.isPremium ? 'bg-white/10 text-white group-hover:bg-white/20' : 'bg-slate-900 text-white group-hover:bg-theme'}`}>
+                      Design Now <ArrowRight size={12} />
                     </div>
-                    <span className="text-[9px] font-black uppercase tracking-widest opacity-60">Generate Style</span>
                   </div>
 
-                  {/* Decorative Elements */}
-                  <div className={`absolute -bottom-10 -right-10 w-32 h-32 rounded-full transition-all duration-700 blur-2xl group-hover:scale-150 ${style.isPremium ? 'bg-indigo-500/20' : 'bg-theme/5 opacity-0 group-hover:opacity-100'}`}></div>
+                  {/* Aesthetic backgrounds for cards */}
+                  <div className={`absolute -bottom-10 -right-10 w-40 h-40 rounded-full transition-all duration-1000 blur-3xl group-hover:scale-150 ${style.isPremium ? 'bg-indigo-500/20' : 'bg-theme/5 opacity-0 group-hover:opacity-100'}`}></div>
                 </button>
               ))}
             </div>
             
-            <div className="p-8 bg-white border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-4 shrink-0">
+            <div className="p-8 bg-white border-t border-slate-50 flex items-center justify-between gap-4 shrink-0">
               <div className="flex items-center gap-3">
-                <Bot size={20} className="text-theme" />
-                <span className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400">Powered by Gemini Visual Engine 2.5</span>
+                <Sparkle size={20} className="text-theme animate-spin duration-[3000ms]" />
+                <span className="text-[10px] font-black uppercase tracking-[0.4em] text-slate-300">Generated by Gemini Vision Hub 2.5</span>
               </div>
-              <p className="text-[10px] font-bold text-slate-300 uppercase tracking-widest">Select a framework to begin generation</p>
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest hidden sm:block">Unlimited Generations Included</p>
             </div>
           </div>
         </div>
