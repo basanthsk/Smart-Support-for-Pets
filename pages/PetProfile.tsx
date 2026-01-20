@@ -20,11 +20,11 @@ export const BREED_DATA: Record<string, string[]> = {
   Cat: ['Persian', 'Maine Coon', 'Siamese', 'Ragdoll', 'Bengal', 'Mixed Breed'],
   Rabbit: ['Holland Lop', 'Mini Rex', 'Dutch Rabbit', 'Lionhead'],
   Hamster: ['Syrian Hamster', 'Dwarf Hamster', 'Roborovski Hamster'],
-  'Guinea Pig': ['Abyssinian', 'American', 'Peruvian', 'Teddy'],
+  'Guinea pig': ['Abyssinian', 'American', 'Peruvian', 'Teddy'],
   // Birds
-  Budgie: ['Standard', 'English'],
+  'Budgie (Parakeet)': ['Standard', 'English'],
   Cockatiel: ['Grey', 'Lutino', 'Pied', 'Pearl'],
-  Parrot: ['African Grey', 'Amazon', 'Eclectus', 'Macaw', 'Conure'],
+  'Parrot (African Grey)': ['African Grey', 'Amazon', 'Eclectus', 'Macaw', 'Conure'],
   Canary: ['Yellow', 'Red Factor', 'Gloster'],
   // Fish
   Goldfish: ['Common', 'Comet', 'Shubunkin', 'Fantail'],
@@ -49,8 +49,8 @@ export const BREED_DATA: Record<string, string[]> = {
 };
 
 export const PET_CATEGORIES = [
-  { id: 'mammal', name: 'Mammals', icon: Dog, species: ['Dog', 'Cat', 'Rabbit', 'Hamster', 'Guinea Pig'] },
-  { id: 'bird', name: 'Birds', icon: Bird, species: ['Budgie', 'Cockatiel', 'Parrot', 'Canary'] },
+  { id: 'mammal', name: 'Mammals', icon: Dog, species: ['Dog', 'Cat', 'Rabbit', 'Hamster', 'Guinea pig'] },
+  { id: 'bird', name: 'Birds', icon: Bird, species: ['Budgie (Parakeet)', 'Cockatiel', 'Parrot (African Grey)', 'Canary'] },
   { id: 'fish', name: 'Fish', icon: Fish, species: ['Goldfish', 'Betta fish', 'Guppy', 'Koi'] },
   { id: 'reptile', name: 'Reptiles', icon: Thermometer, species: ['Turtle', 'Tortoise', 'Gecko', 'Snake'] },
   { id: 'amphibian', name: 'Amphibians', icon: Waves, species: ['Frog', 'Salamander', 'Newt'] },
@@ -172,25 +172,35 @@ const PetProfilePage: React.FC = () => {
       const petIdToRemove = selectedPet.id;
       const petNameToNotify = selectedPet.name;
 
+      // Ensure deletion from the cloud database
       await deletePet(petIdToRemove);
       
+      // Update local collection
       const updatedPets = pets.filter(p => p.id !== petIdToRemove);
+      
+      // Persist locally
       localStorage.setItem(`ssp_pets_${user.uid}`, JSON.stringify(updatedPets));
       setPets(updatedPets);
+      
+      // Reset interaction state
       setShowDeleteModal(false);
       setDeleteConfirmation('');
       setIsAdding(false); 
       
+      // Redirect behavior: Select first pet or go back to registry home
       if (updatedPets.length > 0) {
         setSelectedPet(updatedPets[0]);
       } else {
         setSelectedPet(null);
       }
       
-      addNotification('Deleted', `${petNameToNotify}'s profile has been removed.`, 'info');
+      // Explicit navigation to ensure route state is fresh
+      navigate(AppRoutes.PET_PROFILE);
+      
+      addNotification('Identity Purged', `${petNameToNotify}'s profile has been removed from the registry.`, 'info');
     } catch (err) {
-      console.error("Deletion failed:", err);
-      addNotification('Error', 'Failed to delete profile from database.', 'error');
+      console.error("Deletion cycle failed:", err);
+      addNotification('System Error', 'Could not complete deletion. Please try again.', 'error');
     } finally {
       setIsDeleting(false);
     }
@@ -653,6 +663,7 @@ const PetProfilePage: React.FC = () => {
         </div>
       )}
 
+      {/* Delete Confirmation Modal */}
       {showDeleteModal && selectedPet && (
         <div className="fixed inset-0 z-[120] flex items-center justify-center p-6 bg-slate-900/60 backdrop-blur-md animate-in fade-in">
           <div className="bg-white rounded-[2.5rem] w-full max-w-md overflow-hidden shadow-2xl animate-in zoom-in-95 duration-300">
@@ -662,7 +673,7 @@ const PetProfilePage: React.FC = () => {
               </div>
               <div>
                 <h3 className="text-xl font-black text-rose-900 tracking-tight">Delete Profile?</h3>
-                <p className="text-rose-700/80 font-medium text-xs">This action is permanent.</p>
+                <p className="text-rose-700/80 font-medium text-xs">This action is permanent and cannot be undone.</p>
               </div>
             </div>
             
